@@ -4,7 +4,7 @@
 ; build via: pyinstaller horash.spec -> dist/horash.exe, depois iscc
 
 #define MyAppName "horash"
-#define MyAppVersion "0.1.1"
+#define MyAppVersion "0.2.2"
 #define MyAppPublisher "horash"
 #define MyAppURL "https://github.com/seiti-kg/horash"
 
@@ -36,8 +36,8 @@ Name: "english"; MessagesFile: "compiler:Default.isl"
 
 [Components]
 Name: "core"; Description: "horash (obrigatorio)"; Types: full compact custom; Flags: fixed
-Name: "yara"; Description: "YARA regras (7 MB, recomendado)"; Types: full
-Name: "clamav"; Description: "ClamAV + banco (~300 MB, recomendado para >650MB)"; Types: full
+Name: "yara"; Description: "YARA regras (7 MB, recomendado)"; Types: full; ExtraDiskSpaceRequired: 7340032
+Name: "clamav"; Description: "ClamAV + banco (~300 MB, recomendado para >650MB)"; Types: full; ExtraDiskSpaceRequired: 314572800
 
 [Tasks]
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
