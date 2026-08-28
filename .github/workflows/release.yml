@@ -21,47 +21,19 @@ jobs:
       - name: Install deps
         run: pip install -r requirements.txt
 
-      - name: Install Inno Setup
-        run: choco install innosetup --no-progress -y
-
-      - name: Build horash.exe (leve, ~12mb)
-        run: python -m PyInstaller horash.spec --noconfirm --clean
-
-      - name: Check horash.exe
-        shell: pwsh
+      - name: Lint / check
         run: |
-          dir dist | Format-Table Name,Length -AutoSize
-          if (-not (Test-Path dist/horash.exe)) { throw "dist/horash.exe nao gerado" }
-          Write-Host "leve ok: $((Get-Item dist/horash.exe).Length/1MB) MB"
-
-      - name: Build horash_setup.exe (leve, online)
-        shell: pwsh
-        run: |
-          & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" tools/horash_setup.iss
-          if (-not (Test-Path dist/horash_setup.exe)) { throw "horash_setup.exe nao gerado" }
-          dir dist | Format-Table Name,Length -AutoSize
-
-      - name: Bundle ClamAV + YARA para offline
-        shell: pwsh
-        run: |
-          powershell -ExecutionPolicy Bypass -File tools/bootstrap.ps1
-          Get-ChildItem clamav -Recurse -File | Measure-Object -Property Length -Sum | ForEach-Object { Write-Host "clamav: $($_.Sum/1MB) MB" }
-          Get-ChildItem yara | Format-Table Name,Length -AutoSize
-
-      - name: Build horash_setup_offline.exe (full offline)
-        shell: pwsh
-        run: |
-          & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" tools/horash_setup_offline.iss
-          if (-not (Test-Path dist/horash_setup_offline.exe)) { throw "horash_setup_offline.exe nao gerado" }
-          dir dist | Format-Table Name,Length -AutoSize
+          python -m py_compile src/main.py src/server.py src/scanner.py
+          python tools/fix_yara.py
+          python src/scanner.py
 
       - name: Publish to Releases
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            dist/horash.exe
-            dist/horash_setup.exe
-            dist/horash_setup_offline.exe
+            tools/install.ps1
+            tools/uninstall.ps1
+            tools/bootstrap.ps1
           generate_release_notes: true
           prerelease: ${{ contains(github.ref, '-beta') }}
         env:
