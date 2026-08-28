@@ -4,7 +4,7 @@
 ; build via: set HORASH_OFFLINE=1 & pyinstaller horash.spec -> dist/horash.exe (com bundle), depois iscc
 
 #define MyAppName "horash"
-#define MyAppVersion "0.2.2"
+#define MyAppVersion "0.2.3"
 #define MyAppPublisher "horash"
 #define MyAppURL "https://github.com/seiti-kg/horash"
 

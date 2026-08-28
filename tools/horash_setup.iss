@@ -4,7 +4,7 @@
 ; build via: pyinstaller horash.spec -> dist/horash.exe, depois iscc
 
 #define MyAppName "horash"
-#define MyAppVersion "0.2.2"
+#define MyAppVersion "0.2.3"
 #define MyAppPublisher "horash"
 #define MyAppURL "https://github.com/seiti-kg/horash"
 
@@ -41,7 +41,6 @@ Name: "clamav"; Description: "ClamAV + banco (~300 MB, recomendado para >650MB)"
 
 [Tasks]
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
-Name: "download"; Description: "Baixar protecoes agora (requer internet, 2-5 min)"; GroupDescription: "Finalizar:"; Flags: checkedonce
 
 [Files]
 ; core - exe leve ja contem web/ e src/ via pyinstaller
@@ -61,8 +60,12 @@ Name: "{group}\{cm:UninstallProgram,horash}"; Filename: "{uninstallexe}"; Compon
 Name: "{autodesktop}\horash"; Filename: "{app}\horash.exe"; IconFilename: "{app}\web\favicon.ico"; Tasks: desktopicon; Components: core
 
 [Run]
-Filename: "powershell.exe"; Parameters: "-ExecutionPolicy Bypass -File ""{app}\tools\bootstrap.ps1"" {code:GetBootstrapArgs}"; StatusMsg: "Baixando protecoes (ClamAV/YARA)..."; Flags: runhidden waituntilterminated; Tasks: download; Components: yara clamav
+Filename: "powershell.exe"; Parameters: "-ExecutionPolicy Bypass -File ""{app}\tools\bootstrap.ps1"" {code:GetBootstrapArgs}"; StatusMsg: "Baixando proteções (ClamAV/YARA)..."; Flags: waituntilterminated; Components: yara clamav
 Filename: "{app}\horash.exe"; Description: "{cm:LaunchProgram,horash}"; Flags: nowait postinstall skipifsilent
+
+[UninstallDelete]
+Type: filesandordirs; Name: "{app}\clamav"
+Type: filesandordirs; Name: "{app}\yara"
 
 [Code]
 function GetBootstrapArgs(Param: String): String;

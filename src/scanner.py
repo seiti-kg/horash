@@ -19,19 +19,37 @@ def get_bundle_base():
         return sys._MEIPASS
     return os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
+def get_exe_dir():
+    # quando instalado via horash_setup.exe, engines ficam ao lado do exe em {app}, nao em _MEIPASS
+    try:
+        if hasattr(sys, '_MEIPASS'):
+            # sys.executable = C:\Users\...\horash\horash.exe
+            exe_dir = os.path.dirname(os.path.abspath(sys.executable))
+            if os.path.isdir(exe_dir):
+                return exe_dir
+        # fallback: cwd ou project root
+        return os.getcwd()
+    except:
+        return os.getcwd()
+
 def find_binary(name_variants):
-    """Tenta achar binario em bundle, PATH e locais comuns Windows"""
-    base = get_bundle_base()
-    # 1. bundle clamav/ yara/
-    for variant in name_variants:
-        for sub in ["clamav", "yara", "bin", ""]:
-            cand = os.path.join(base, sub, variant)
-            if os.path.isfile(cand):
-                return cand
-        # tambem no diretorio atual
-        cand2 = os.path.join(os.path.dirname(__file__), variant)
-        if os.path.isfile(cand2):
-            return cand2
+    """Tenta achar binario em bundle, exe_dir, PATH e locais comuns Windows"""
+    bases = [get_bundle_base(), get_exe_dir(), os.getcwd(), os.path.dirname(os.path.abspath(__file__))]
+    # dedup
+    seen = []
+    for b in bases:
+        if b and b not in seen:
+            seen.append(b)
+    # 1. bundle / exe_dir / cwd
+    for base in seen:
+        for variant in name_variants:
+            for sub in ["clamav", "yara", "bin", ""]:
+                cand = os.path.join(base, sub, variant)
+                if os.path.isfile(cand):
+                    return cand
+            cand2 = os.path.join(base, variant)
+            if os.path.isfile(cand2):
+                return cand2
     
     # 2. PATH
     for variant in name_variants:
@@ -59,31 +77,40 @@ def find_yara():
     return find_binary(["yara64.exe", "yara.exe", "yara"])
 
 def find_yara_rules():
-    base = get_bundle_base()
-    candidates = [
-        os.path.join(base, "yara", "rules.yar"),
-        os.path.join(base, "rules.yar"),
-        os.path.join(base, "rules", "index.yar"),
-        os.path.join(os.path.dirname(__file__), "yara", "rules.yar"),
-        os.path.join(os.path.dirname(__file__), "rules.yar"),
-        os.path.join(os.path.dirname(__file__), "rules", "index.yar"),
-    ]
+    bases = [get_bundle_base(), get_exe_dir(), os.getcwd(), os.path.dirname(os.path.abspath(__file__))]
+    seen = []
+    for b in bases:
+        if b and b not in seen:
+            seen.append(b)
+    candidates = []
+    for base in seen:
+        candidates.extend([
+            os.path.join(base, "yara", "rules.yar"),
+            os.path.join(base, "rules.yar"),
+            os.path.join(base, "rules", "index.yar"),
+        ])
     for p in candidates:
         if os.path.isfile(p):
             return p
     # busca recursiva por .yar
-    for root in [os.path.join(base, "yara"), os.path.join(os.path.dirname(__file__), "yara")]:
-        if os.path.isdir(root):
-            files = glob.glob(os.path.join(root, "**", "*.yar"), recursive=True)
-            if files:
-                return files[0]
+    for base in seen:
+        for root in [os.path.join(base, "yara")]:
+            if os.path.isdir(root):
+                files = glob.glob(os.path.join(root, "**", "*.yar"), recursive=True)
+                if files:
+                    return files[0]
     return None
 
 def get_clamav_db_path():
-    base = get_bundle_base()
-    for cand in [os.path.join(base, "clamav", "db"), os.path.join(base, "db"), os.path.join(os.path.dirname(__file__), "clamav", "db")]:
-        if os.path.isdir(cand):
-            return cand
+    bases = [get_bundle_base(), get_exe_dir(), os.getcwd(), os.path.dirname(os.path.abspath(__file__))]
+    seen = []
+    for b in bases:
+        if b and b not in seen:
+            seen.append(b)
+    for base in seen:
+        for cand in [os.path.join(base, "clamav", "db"), os.path.join(base, "db")]:
+            if os.path.isdir(cand):
+                return cand
     return None
 
 def check_scanners():
