@@ -17,20 +17,18 @@ AppPublisherURL={#MyAppURL}
 DefaultDirName={localappdata}\{#MyAppName}
 DefaultGroupName={#MyAppName}
 AllowNoIcons=yes
-OutputDir=dist
+OutputDir=..\dist
 OutputBaseFilename=horash_setup
 Compression=lzma
 SolidCompression=yes
 PrivilegesRequired=lowest
 PrivilegesRequiredOverridesAllowed=dialog
 WizardStyle=modern
-SetupIconFile=web\favicon.ico
+SetupIconFile=..\web\favicon.ico
 UninstallDisplayIcon={app}\horash.exe
 DisableDirPage=no
 DisableProgramGroupPage=yes
 ArchitecturesInstallIn64BitMode=x64
-WizardImageFile=compiler:WizModernImage-IS.bmp
-WizardSmallImageFile=compiler:WizModernSmallImage-IS.bmp
 
 [Languages]
 Name: "brazilianportuguese"; MessagesFile: "compiler:Languages\BrazilianPortuguese.isl"
@@ -47,15 +45,15 @@ Name: "download"; Description: "Baixar protecoes agora (requer internet, 2-5 min
 
 [Files]
 ; core - exe leve ja contem web/ e src/ via pyinstaller
-Source: "dist\horash.exe"; DestDir: "{app}"; Flags: ignoreversion; Components: core
-Source: "tools\bootstrap.ps1"; DestDir: "{app}\tools"; Flags: ignoreversion; Components: core
-Source: "tools\install_clamav.ps1"; DestDir: "{app}\tools"; Flags: ignoreversion; Components: clamav
-Source: "tools\install_yara.ps1"; DestDir: "{app}\tools"; Flags: ignoreversion; Components: yara
-Source: "tools\fix_yara.py"; DestDir: "{app}\tools"; Flags: ignoreversion; Components: yara
-Source: "web\favicon.ico"; DestDir: "{app}\web"; Flags: ignoreversion; Components: core
+Source: "..\dist\horash.exe"; DestDir: "{app}"; Flags: ignoreversion; Components: core
+Source: "bootstrap.ps1"; DestDir: "{app}\tools"; Flags: ignoreversion; Components: core
+Source: "install_clamav.ps1"; DestDir: "{app}\tools"; Flags: ignoreversion; Components: clamav
+Source: "install_yara.ps1"; DestDir: "{app}\tools"; Flags: ignoreversion; Components: yara
+Source: "fix_yara.py"; DestDir: "{app}\tools"; Flags: ignoreversion; Components: yara
+Source: "..\web\favicon.ico"; DestDir: "{app}\web"; Flags: ignoreversion; Components: core
 ; docs
-Source: "README.md"; DestDir: "{app}"; Flags: ignoreversion; Components: core
-Source: "LICENSE"; DestDir: "{app}"; Flags: ignoreversion; Components: core
+Source: "..\README.md"; DestDir: "{app}"; Flags: ignoreversion; Components: core
+Source: "..\LICENSE"; DestDir: "{app}"; Flags: ignoreversion; Components: core
 
 [Icons]
 Name: "{group}\horash"; Filename: "{app}\horash.exe"; IconFilename: "{app}\web\favicon.ico"; Components: core

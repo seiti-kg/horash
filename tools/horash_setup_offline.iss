@@ -17,14 +17,14 @@ AppPublisherURL={#MyAppURL}
 DefaultDirName={localappdata}\{#MyAppName}
 DefaultGroupName={#MyAppName}
 AllowNoIcons=yes
-OutputDir=dist
+OutputDir=..\dist
 OutputBaseFilename=horash_setup_offline
 Compression=lzma
 SolidCompression=yes
 PrivilegesRequired=lowest
 PrivilegesRequiredOverridesAllowed=dialog
 WizardStyle=modern
-SetupIconFile=web\favicon.ico
+SetupIconFile=..\web\favicon.ico
 UninstallDisplayIcon={app}\horash.exe
 DisableDirPage=no
 DisableProgramGroupPage=yes
@@ -44,13 +44,13 @@ Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{
 
 [Files]
 ; horash.exe offline ja contem clamav/ yara/ via HORASH_OFFLINE=1, mas tambem instalamos separado para atualizar via freshclam
-Source: "dist\horash.exe"; DestDir: "{app}"; Flags: ignoreversion; Components: core
-Source: "clamav\*"; DestDir: "{app}\clamav"; Flags: ignoreversion recursesubdirs createallsubdirs; Components: clamav
-Source: "yara\*"; DestDir: "{app}\yara"; Flags: ignoreversion recursesubdirs createallsubdirs; Components: yara
-Source: "tools\bootstrap.ps1"; DestDir: "{app}\tools"; Flags: ignoreversion; Components: core
-Source: "web\favicon.ico"; DestDir: "{app}\web"; Flags: ignoreversion; Components: core
-Source: "README.md"; DestDir: "{app}"; Flags: ignoreversion; Components: core
-Source: "LICENSE"; DestDir: "{app}"; Flags: ignoreversion; Components: core
+Source: "..\dist\horash.exe"; DestDir: "{app}"; Flags: ignoreversion; Components: core
+Source: "..\clamav\*"; DestDir: "{app}\clamav"; Flags: ignoreversion recursesubdirs createallsubdirs; Components: clamav
+Source: "..\yara\*"; DestDir: "{app}\yara"; Flags: ignoreversion recursesubdirs createallsubdirs; Components: yara
+Source: "bootstrap.ps1"; DestDir: "{app}\tools"; Flags: ignoreversion; Components: core
+Source: "..\web\favicon.ico"; DestDir: "{app}\web"; Flags: ignoreversion; Components: core
+Source: "..\README.md"; DestDir: "{app}"; Flags: ignoreversion; Components: core
+Source: "..\LICENSE"; DestDir: "{app}"; Flags: ignoreversion; Components: core
 
 [Icons]
 Name: "{group}\horash"; Filename: "{app}\horash.exe"; IconFilename: "{app}\web\favicon.ico"; Components: core
