@@ -44,13 +44,51 @@ except ImportError:
     from vt_incognito import open_incognito
 
 PORT = 8765
-# bundle (_MEIPASS) tem index.html na raiz; dev tem em web/
-if hasattr(sys, '_MEIPASS'):
-    DIRECTORY = sys._MEIPASS
-else:
+# encontra web dir que contem index.html (robusto para install, dev e bundle)
+def _find_web_dir():
+    candidates = []
+    if hasattr(sys, '_MEIPASS'):
+        candidates.append(sys._MEIPASS)
+        candidates.append(os.path.join(sys._MEIPASS, "web"))
+    try:
+        candidates.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "web"))
+        candidates.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
+    except:
+        pass
+    try:
+        candidates.append(os.path.join(os.getcwd(), "web"))
+        candidates.append(os.getcwd())
+    except:
+        pass
+    try:
+        exe_dir = os.path.dirname(os.path.abspath(sys.executable)) if hasattr(sys, 'executable') else None
+        if exe_dir:
+            candidates.append(os.path.join(exe_dir, "web"))
+            candidates.append(exe_dir)
+    except:
+        pass
+    for c in candidates:
+        if not c:
+            continue
+        c = os.path.abspath(c)
+        if os.path.isfile(os.path.join(c, "index.html")):
+            return c
+    # fallback: tenta web subpasta
+    for c in candidates:
+        if c and os.path.isdir(os.path.join(c, "web")) and os.path.isfile(os.path.join(c, "web", "index.html")):
+            return os.path.join(c, "web")
+    # ultimo fallback
+    if hasattr(sys, '_MEIPASS'):
+        return sys._MEIPASS
     _src_dir = os.path.dirname(os.path.abspath(__file__))
-    _project_root = os.path.dirname(_src_dir)
-    DIRECTORY = os.path.join(_project_root, "web")
+    return os.path.join(os.path.dirname(_src_dir), "web")
+
+DIRECTORY = _find_web_dir()
+# debug
+try:
+    print(f"[*] web dir: {DIRECTORY} (index exists={os.path.isfile(os.path.join(DIRECTORY, 'index.html'))})")
+except:
+    pass
 
 class Handler(http.server.SimpleHTTPRequestHandler):
     def __init__(self, *args, **kwargs):
@@ -161,6 +199,11 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             return
 
         # Serve arquivos normalmente (index.html etc)
+        # se for / e index.html existe, garante que serve index.html e nao directory listing
+        if parsed.path in ("/", ""):
+            index_path = os.path.join(DIRECTORY, "index.html")
+            if os.path.isfile(index_path):
+                self.path = "/index.html"
         return super().do_GET()
 
     def do_POST(self):
