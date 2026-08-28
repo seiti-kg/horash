@@ -150,5 +150,5 @@ Write-Host "[*] para desinstalar: powershell -ExecutionPolicy Bypass -File $inst
 # pergunta se quer iniciar agora
 $run = Read-Host "iniciar horash agora? (s/n)"
 if ($run -eq "s" -or $run -eq "S") {
-    Start-Process $targetBat
+    Start-Process $targetBat -WorkingDirectory $installDir
 }
