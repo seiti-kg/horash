@@ -5,7 +5,7 @@
 <h1 align="center">horash</h1>
 
 <p align="center">
-  <em>triage local de arquivos em lote: sha-256 sem upload, virustotal + clamav/yara, sem rastros.</em>
+  <em>triagem local de arquivos em lote: sha-256, virustotal + clamav/yara</em>
 </p>
 
 <p align="center">
