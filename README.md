@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/seiti-kg/horash/releases"><img src="https://img.shields.io/badge/release-v0.2.3--beta-blue" alt="release"></a>
+  <a href="https://github.com/seiti-kg/horash/releases"><img src="https://img.shields.io/badge/release-v0.3.0--beta-blue" alt="release"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-green" alt="license"></a>
   <a href="https://www.python.org"><img src="https://img.shields.io/badge/python-3.11-blue" alt="python"></a>
 </p>
@@ -21,11 +21,9 @@
 
 ---
 
-## instalar (1 comando)
+## instalar
 
-> sem .exe, sem smart app control, sem git
-
-abra **powershell** como usuario normal e cole:
+abra o **powershell** e cole:
 
 ```ps1
 irm https://raw.githubusercontent.com/seiti-kg/horash/main/tools/install.ps1 | iex
@@ -72,18 +70,17 @@ python src/main.py
 horash/
 ├── horash.bat            # launcher app (chama python src/main.py)
 ├── src/
-│   ├── main.py           # entrypoint app pywebview + fallback browser
-│   ├── server.py         # http://localhost:8765
-│   └── scanner.py        # wrapper clamav + yara (procura ao lado do exe e em _MEIPASS)
+│   ├── main.py           # app
+│   ├── server.py         # servidor local
+│   └── scanner.py        # clamav + yara
 ├── web/
 │   └── index.html
 ├── yara/
-│   └── rules.yar         # yara-forge core ~5k regras, fallback 12 regras curadas
+│   └── rules.yar
 └── tools/
-    ├── install.ps1       # instalador irm (recomendado)
+    ├── install.ps1
     ├── uninstall.ps1
-    ├── bootstrap.ps1     # baixa clamav + yara sem git
-    └── fix_yara.py       # gera regras curadas
+    └── bootstrap.ps1
 ```
 
 ## fluxo por tamanho
