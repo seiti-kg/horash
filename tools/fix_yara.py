@@ -1,11 +1,13 @@
-import "pe"
+import os
+
+yara_content = """import "pe"
 import "math"
 
 rule EICAR_Test {
     meta:
         description = "EICAR test file"
     strings:
-        $eicar = "X5O!P%@AP[4\\PZX54(P^)7CC)7}EICAR-STANDARD-ANTIVIRUS-TEST-FILE!H+H*"
+        $eicar = "X5O!P%@AP[4\\\\PZX54(P^)7CC)7}EICAR-STANDARD-ANTIVIRUS-TEST-FILE!H+H*"
     condition:
         $eicar
 }
@@ -113,3 +115,20 @@ rule Miner_Generic {
     condition:
         2 of them
 }
+"""
+
+os.makedirs("yara/rules", exist_ok=True)
+open("yara/rules.yar","w",encoding="ascii",newline="\n").write(yara_content)
+open("yara/rules/curated.yar","w",encoding="ascii",newline="\n").write(yara_content)
+print(f"written {len(yara_content)} bytes to yara/rules.yar")
+# test
+import subprocess, pathlib
+try:
+    r = subprocess.run(["yara/yara64.exe", "yara/rules.yar", "yara/yara64.exe"], capture_output=True, text=True, timeout=10)
+    print("yara test rc:", r.returncode, "stdout:", r.stdout[:200], "stderr:", r.stderr[:200])
+    if r.returncode not in (0,1):
+        print("yara failed")
+    else:
+        print("yara ok")
+except Exception as e:
+    print("test err", e)

@@ -1,14 +1,13 @@
 @echo off
-REM Horash.bat - Launcher que BYPASSA Smart App Control (SAC)
+REM horash.bat - launcher que bypassa Smart App Control (SAC)
 REM SAC bloqueia .exe nao assinado, mas permite python.exe assinado (Microsoft Store)
-REM Este .bat chama python src/main.py e funciona mesmo com SAC em Enforced
+REM este .bat chama python src/main.py e funciona mesmo com SAC em Enforced
 
-title Horash
-echo [*] Horash - Iniciando...
-echo [*] Se falhar, instale Python 3.11+ da Microsoft Store: https://apps.microsoft.com/detail/9NRWMJP3717K
+title horash
+echo [*] horash - iniciando...
+echo [*] se falhar, instale Python 3.11+ da Microsoft Store: https://apps.microsoft.com/detail/9NRWMJP3717K
 echo.
 
-REM Tenta encontrar Python (Store, oficial, py launcher)
 where python >nul 2>nul
 if %ERRORLEVEL%==0 (
     python --version
@@ -33,15 +32,14 @@ if %ERRORLEVEL%==0 (
     exit /b
 )
 
-REM Fallback: tenta python da Store diretamente
 if exist "%LOCALAPPDATA%\Microsoft\WindowsApps\python.exe" (
     "%LOCALAPPDATA%\Microsoft\WindowsApps\python.exe" src\main.py
     pause
     exit /b
 )
 
-echo [!] Python nao encontrado.
-echo     Instale via: winget install Python.Python.3.11
+echo [!] python nao encontrado.
+echo     instale via: winget install Python.Python.3.11
 echo     ou https://www.python.org/downloads/
 echo     ou Microsoft Store
 pause

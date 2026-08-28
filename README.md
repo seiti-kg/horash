@@ -5,7 +5,7 @@
 <h1 align="center">horash</h1>
 
 <p align="center">
-  <em>Triage local de arquivos em lote: SHA-256 sem upload, VirusTotal + ClamAV/YARA, sem rastros.</em>
+  <em>triage local de arquivos em lote: sha-256 sem upload, virustotal + clamav/yara, sem rastros.</em>
 </p>
 
 <p align="center">
@@ -16,77 +16,94 @@
 </p>
 
 <p align="center">
-  Gera <strong>SHA-256 sem upload</strong> (streaming 4MB, suporta GBs), consulta <strong>VirusTotal</strong> por hash e escaneia <strong>sempre com ClamAV + YARA</strong> — sem limite de 650MB, sem persistência, sem rastros.<br>
-  Quando o VT não vê (arquivo novo, grande ou sensível), o scan offline assume.
+  gera <strong>sha-256 sem upload</strong> (streaming 4mb, suporta gbs), consulta <strong>virustotal</strong> por hash e escaneia <strong>sempre com clamav + yara</strong> — sem limite de 650mb, sem persistencia, sem rastros.<br>
+  quando o vt nao ve (arquivo novo, grande ou sensivel), o scan offline assume.
 </p>
 
 ---
 
-## Estrutura
+## estrutura
 
 ```
 horash/
-├── Horash.bat            # duplo clique — bypass Smart App Control (recomendado)
-├── Horash.spec           # PyInstaller onefile (FileHasher.spec = alias legado)
+├── horash.spec           # pyinstaller leve (~45mb) - horash_setup usa
+├── horash.bat            # duplo clique — bypass smart app control (recomendado)
 ├── requirements.txt
-├── src/                  # Python
+├── src/                  # python
 │   ├── main.py           # entrypoint .exe (sobe server + abre navegador)
 │   ├── server.py         # http://localhost:8765  /ping /open /health/scan /scan /vt-scrape
-│   ├── scanner.py        # wrapper ClamAV + YARA
-│   ├── vt_incognito.py   # abre VT em --incognito
-│   └── vt_scrape.py      # scrape VT via Playwright (sem API key)
+│   ├── scanner.py        # wrapper clamav + yara
+│   ├── vt_incognito.py   # abre vt em --incognito
+│   └── vt_scrape.py      # scrape vt via playwright (sem api key)
 ├── web/                  # frontend
 │   ├── index.html
-│   ├── favicon.ico       # ícone do app e do .exe
+│   ├── favicon.ico       # icone do app e do .exe
 │   └── sha256.min.js
 ├── yara/
-│   └── rules.yar         # regras (binários yara64.exe ignorados no git)
+│   ├── rules.yar         # regras (yara-forge core ~5k regras, fallback curado 12 regras)
+│   └── rules/curated.yar # fallback leve
 ├── tools/
-│   ├── bundle_all.ps1    # baixa ClamAV + YARA
+│   ├── bootstrap.ps1     # baixa clamav + yara sem git (usado pelo setup leve)
 │   ├── install_clamav.ps1
-│   └── install_yara.ps1
+│   ├── install_yara.ps1
+│   ├── fix_yara.py       # gera regras curadas sem acionar antivirus
+│   ├── horash_setup.iss          # setup leve (online, ~20mb)
+│   └── horash_setup_offline.iss  # setup full offline (~400mb)
 └── scripts/
-    ├── build.bat         # gera dist/Horash.exe
-    ├── build_quick.bat   # gera ~10 MB sem ClamAV (teste)
+    ├── build.bat         # gera dist/horash.exe leve
+    ├── build_setup.bat   # gera horash_setup.exe + horash_setup_offline.exe
     └── start.bat         # dev: python src/server.py
 ```
 
-`clamav/`, `build/`, `dist/` são **ignorados no git** (`.gitignore`). Baixe localmente ou pegue o `.exe` pronto em **Releases**.
+`clamav/`, `build/`, `dist/` sao **ignorados no git** (`.gitignore`). baixe localmente ou pegue o setup em **releases**.
 
-## Uso rápido (amigos — sem build)
+## uso rapido (amigos — sem git, sem build)
 
-### Opção A — .exe pronto (1 clique)
+### baixe em releases (recomendado)
 
-1. Baixe `Horash.exe` em **Releases** (Assets)
-2. Duplo clique → abre `http://localhost:8765` com ClamAV+YARA já dentro
+va em **releases** e escolha um:
 
-> Se o Windows bloquear (Smart App Control), use a **Opção B**.
+| arquivo | tamanho | internet na instalacao | quando usar |
+|---|---|---|---|
+| `horash_setup.exe` | ~20 mb | sim (baixa ~300mb na instalacao, 2-5min) | recomendado, download rapido |
+| `horash_setup_offline.exe` | ~400 mb | nao (ja vem com tudo) | sem internet / pendrive / airgap |
 
-### Opção B — sem .exe, bypass SAC (recomendado)
+**passo a passo (horash_setup.exe):**
+
+1. baixe `horash_setup.exe` em **releases > assets**
+2. duplo clique → `onde instalar? [C:\Users\voce\AppData\Local\horash]` → pode mudar → `next`
+3. escolha `[x] yara [x] clamav` (pode desmarcar) → `instalar` → se marcou, baixa com barrinha
+4. `concluir` → abre `http://localhost:8765` automatico. atalho criado na area de trabalho.
+
+> sem `git clone`, sem `powershell` manual, sem instalar python. so duplo clique.
+
+<details>
+<summary>sem setup? portable direto</summary>
+
+- baixe `horash.exe` em releases (leve, ~12mb) → duplo clique → funciona para hash+vt. para scan local clique em `baixar protecoes` quando pedir, ou rode `tools/bootstrap.ps1`.
+
+</details>
+
+### bypass smart app control
+
+se o windows bloquear `horash_setup.exe` (sac enforced), use o portable:
 
 ```bat
-git clone https://github.com/seiti-kg/horash.git
-cd horash
-
-# 1. baixa scanners (1ª vez, ~300 MB, 2-5 min)
-powershell -ExecutionPolicy Bypass -File tools/bundle_all.ps1
-
-# 2. roda (duplo clique)
-Horash.bat
-# ou
-python src/main.py
+# sem setup, sem sac
+horash.bat
+# ou python src/main.py
 # abre http://localhost:8765
 ```
 
-Instale Python 3.11+ via [Microsoft Store](https://apps.microsoft.com/detail/9NRWMJP3717K) para o bypass SAC funcionar.
+instale python 3.11+ via [microsoft store](https://apps.microsoft.com/detail/9NRWMJP3717K) para o bypass funcionar.
 
-## Uso dev
+## uso dev
 
 ```bat
+powershell -ExecutionPolicy Bypass -File tools/bootstrap.ps1
+# ou separado:
 powershell -ExecutionPolicy Bypass -File tools/install_clamav.ps1
 powershell -ExecutionPolicy Bypass -File tools/install_yara.ps1
-# ou
-powershell -ExecutionPolicy Bypass -File tools/bundle_all.ps1
 
 scripts\start.bat
 # ou
@@ -95,61 +112,65 @@ python src/server.py
 python src/main.py
 ```
 
-## Gerar .exe (você)
+## gerar setups (voce)
 
-Local:
+local:
+
 ```bat
-# precisa ter rodado tools/bundle_all.ps1 antes
 scripts\build.bat
-# saída: dist\Horash.exe (~350-400 MB com DB)
+# saida: dist\horash.exe (~45 mb leve)
+
+scripts\build_setup.bat
+# saida: dist\horash_setup.exe (~20 mb) + dist\horash_setup_offline.exe (~400 mb)
+
+# so offline portable (um exe so com tudo dentro):
+set HORASH_OFFLINE=1
+python -m PyInstaller horash.spec --noconfirm --clean
+# saida: dist\horash.exe (~400 mb)
 ```
 
-Publicar em **Releases**:
+publicar em **releases**:
 
-**Manual:**
+**manual:**
+
 ```bat
-gh release create v0.1.1-beta dist/Horash.exe --title "v0.1.1-beta" --notes "Beta" --prerelease
+gh release create v0.1.1-beta dist/horash_setup.exe dist/horash_setup_offline.exe dist/horash.exe --title "v0.1.1-beta" --notes "beta" --prerelease
 ```
 
-**Automático (GitHub Actions):**
+**automatico (github actions):**
+
 ```bat
 git tag v0.1.1-beta
 git push origin v0.1.1-beta
-# Actions (.github/workflows/release.yml) builda o .exe no Windows e publica sozinho
+# actions (.github/workflows/release.yml) builda tudo no windows e publica sozinho
 ```
 
-Teste rápido sem bundle:
+## fluxo por tamanho
 
-```bat
-scripts\build_quick.bat
-# dist\Horash_Quick.exe (~10 MB, scan local OFF)
-```
+- `<= 650 mb`: sha-256 local → botoes `vt anonimo` (`virustotal.com/gui/file/{hash}`) + `api` (com key) + **scan local** clamav+yara automatico
+- `> 650 mb`: vt mostra `n/a` (nao aceita upload), so scan local e valido
 
-## Fluxo por tamanho
-
-- `≤ 650 MB`: SHA-256 local → botões `VT anônimo` (`virustotal.com/gui/file/{hash}`) + `API` (com key) + **Scan Local** ClamAV+YARA automático
-- `> 650 MB`: VT mostra `N/A` (não aceita upload), só Scan Local é válido
-
-## Endpoints
+## endpoints
 
 - `GET /ping` → `{"status":"ok"}`
-- `GET /open?hash=SHA256` → abre VT em anônimo local
+- `GET /open?hash=SHA256` → abre vt em anonimo local
 - `GET /health/scan` → `{"clamav_available":bool, "yara_available":bool, ...}`
-- `GET /vt-scrape?hash=SHA256` → scrape VT via Playwright (sem API key)
+- `GET /vt-scrape?hash=SHA256` → scrape vt via playwright (sem api key)
 - `POST /scan` header `X-Filename`, body `bytes` → `{"infected":bool, "signatures":[], "clamav":{}, "yara":{}}`
 
-## Smart App Control
+## smart app control
 
-SAC bloqueia `.exe` não assinado por CA reputada. Soluções:
+sac bloqueia `.exe` nao assinado por ca reputada. solucoes:
 
-- **Recomendado**: `Horash.bat` (chama `python.exe` assinado Microsoft) — funciona com SAC Enforced
-- **Assinar**: `powershell -ExecutionPolicy Bypass -File tools/sign_exe.ps1` (admin)
-- **Desativar**: Windows Security > App & browser control > Smart App Control > Off
+- **recomendado**: `horash.bat` (chama `python.exe` assinado microsoft) — funciona com sac enforced
+- **setup**: `horash_setup.exe` ja instala em `%localappdata%` sem precisar admin, mas pode pedir permissao se escolher `C:\Program Files`
+- **assinar**: `powershell -ExecutionPolicy Bypass -File tools/sign_exe.ps1` (admin)
+- **desativar**: windows security > app & browser control > smart app control > off
 
-Detalhes: `tools/disable_sac_instructions.txt`
+detalhes: `tools/disable_sac_instructions.txt`
 
-## Privacidade
+## privacidade
 
-- Hash via `js-sha256` streaming **100% local**, sem upload, sem `localStorage`
-- Scan local **100% offline** após `freshclam`
-- Tudo em memória / temp deletado; `beforeunload` limpa `files` e `apiKey`
+- hash via `js-sha256` streaming **100% local**, sem upload, sem `localstorage`
+- scan local **100% offline** apos `freshclam`
+- tudo em memoria / temp deletado; `beforeunload` limpa `files` e `apiKey`

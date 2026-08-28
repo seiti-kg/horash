@@ -1,27 +1,22 @@
 #!/usr/bin/env python3
 """
-main.py - Entrypoint para File Hasher .exe (ClamAV+YARA sempre ativo)
-- Inicia server.py em thread
-- Abre navegador padrão em http://localhost:8765
-- Ao fechar janela, encerra server e limpa
-
-Uso dev: python main.py
-Build: pyinstaller FileHasher.spec
+main.py - entrypoint horash app (pywebview + fallback browser)
+- sobe server.py em thread em http://localhost:8765
+- tenta abrir janela nativa pywebview (WebView2), fallback para navegador
+- uso dev: python src/main.py
+- build: pyinstaller horash.spec
 """
 import os
 import sys
 import threading
 import time
 import webbrowser
-import socketserver
-import http.server
+import socket
 
-# Garante que diretorio do exe/script é o cwd
-# src/ -> project_root = parent de src
+# garante que diretorio do exe/script e o cwd
 if hasattr(sys, '_MEIPASS'):
     base = sys._MEIPASS
     os.chdir(base)
-    # Em bundle, server é módulo coletado pelo PyInstaller (PYZ), não arquivo em disco
     try:
         import server as server_mod
     except ImportError:
@@ -31,10 +26,9 @@ if hasattr(sys, '_MEIPASS'):
         server_mod = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(server_mod)
 else:
-    src_dir = os.path.dirname(os.path.abspath(__file__))  # src/
-    project_root = os.path.dirname(src_dir)  # root
+    src_dir = os.path.dirname(os.path.abspath(__file__))
+    project_root = os.path.dirname(src_dir)
     os.chdir(project_root)
-    # garante que src/ está no path para imports internos
     if src_dir not in sys.path:
         sys.path.insert(0, src_dir)
     base = src_dir
@@ -46,43 +40,90 @@ else:
 
 PORT = 8765
 
-def start_server():
+def is_port_in_use(port):
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    try:
+        s.bind(("", port))
+        s.close()
+        return False
+    except OSError:
+        return True
+
+def wait_server(host="127.0.0.1", port=PORT, timeout=10):
+    start = time.time()
+    while time.time() - start < timeout:
+        try:
+            with socket.create_connection((host, port), timeout=0.5):
+                return True
+        except:
+            time.sleep(0.15)
+    return False
+
+def start_server_blocking():
     handler = server_mod.Handler
     httpd = server_mod.ThreadedTCPServer(("", PORT), handler)
-    print(f"[*] File Hasher .exe - Servidor em http://localhost:{PORT}")
+    print(f"[*] horash - servidor em http://localhost:{PORT}")
     try:
         info = server_mod.check_scanners()
-        print(f"[*] ClamAV: {'OK' if info.get('clamav_available') else 'OFF'} - {info.get('clamav_path') or 'nao encontrado'}")
-        print(f"[*] YARA: {'OK' if info.get('yara_available') else 'OFF'} - {info.get('yara_path') or 'nao encontrado'}")
+        print(f"[*] clamav: {'ok' if info.get('clamav_available') else 'off'} - {info.get('clamav_path') or 'nao encontrado'}")
+        print(f"[*] yara: {'ok' if info.get('yara_available') else 'off'} - {info.get('yara_path') or 'nao encontrado'}")
     except Exception as e:
-        print(f"[*] Scanner check: {e}")
-    print("[*] Abrindo navegador...")
-    # abre navegador apos 1s
-    def open_browser():
-        time.sleep(1.2)
-        try:
-            webbrowser.open(f"http://localhost:{PORT}")
-            print("[*] Navegador aberto. Feche esta janela para encerrar.")
-        except Exception as e:
-            print(f"[!] Falha ao abrir navegador: {e}")
-            print(f"    Abra manualmente http://localhost:{PORT}")
-    threading.Thread(target=open_browser, daemon=True).start()
+        print(f"[*] scanner check: {e}")
     try:
         httpd.serve_forever()
     except KeyboardInterrupt:
-        print("\n[*] Encerrando...")
+        print("\n[*] encerrando...")
         httpd.shutdown()
 
 if __name__ == "__main__":
-    # Se rodar como .exe sem console, ainda mostra prints no log
-    # Tenta abrir porta, se já em uso avisa
-    import socket
-    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    try:
-        s.bind(("", PORT))
-        s.close()
-    except OSError:
-        print(f"[!] Porta {PORT} já em uso. Tentando abrir navegador apenas...")
-        webbrowser.open(f"http://localhost:{PORT}")
+    if is_port_in_use(PORT):
+        print(f"[!] porta {PORT} ja em uso, abrindo navegador...")
+        try:
+            webbrowser.open(f"http://localhost:{PORT}")
+        except:
+            pass
         sys.exit(0)
-    start_server()
+
+    # sobe server em thread daemon
+    t = threading.Thread(target=start_server_blocking, daemon=True)
+    t.start()
+
+    if not wait_server():
+        print("[!] falha ao subir servidor")
+        sys.exit(1)
+
+    url = f"http://localhost:{PORT}"
+    # tenta pywebview (janela nativa)
+    try:
+        import webview
+        print("[*] abrindo janela nativa (pywebview/WebView2)...")
+        # webview precisa estar no main thread
+        window = webview.create_window(
+            "horash",
+            url,
+            width=1120,
+            height=760,
+            min_size=(900, 600),
+            text_select=True,
+            zoomable=True,
+        )
+        # sem console, sem menu extra
+        webview.start()
+        print("[*] janela fechada, encerrando...")
+        os._exit(0)
+    except Exception as e:
+        print(f"[!] pywebview falhou ({e}), fallback navegador")
+        print(f"[*] abrindo {url} no navegador...")
+        try:
+            webbrowser.open(url)
+            print("[*] navegador aberto. feche esta janela para encerrar. ctrl+c para parar.")
+        except Exception as e2:
+            print(f"[!] falha navegador: {e2}")
+            print(f"    abra manualmente {url}")
+        # mantem server vivo no main thread
+        try:
+            while True:
+                time.sleep(1)
+        except KeyboardInterrupt:
+            print("\n[*] encerrando...")
+            os._exit(0)

@@ -21,26 +21,47 @@ jobs:
       - name: Install deps
         run: pip install -r requirements.txt
 
-      - name: Bundle ClamAV + YARA
-        shell: pwsh
-        run: |
-          powershell -ExecutionPolicy Bypass -File tools/bundle_all.ps1
-          Get-ChildItem clamav -Recurse | Select-Object FullName,Length | Select-Object -First 20 | Format-Table -AutoSize
-          Get-ChildItem yara | Format-Table Name,Length -AutoSize
+      - name: Install Inno Setup
+        run: choco install innosetup --no-progress -y
 
-      - name: Build Horash.exe
-        run: python -m PyInstaller Horash.spec --noconfirm --clean
+      - name: Build horash.exe (leve, ~12mb)
+        run: python -m PyInstaller horash.spec --noconfirm --clean
 
-      - name: Check exe
+      - name: Check horash.exe
         shell: pwsh
         run: |
           dir dist | Format-Table Name,Length -AutoSize
-          if (-not (Test-Path dist/Horash.exe)) { throw "dist/Horash.exe nao gerado" }
+          if (-not (Test-Path dist/horash.exe)) { throw "dist/horash.exe nao gerado" }
+          Write-Host "leve ok: $((Get-Item dist/horash.exe).Length/1MB) MB"
+
+      - name: Build horash_setup.exe (leve, online)
+        shell: pwsh
+        run: |
+          & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" tools/horash_setup.iss
+          if (-not (Test-Path dist/horash_setup.exe)) { throw "horash_setup.exe nao gerado" }
+          dir dist | Format-Table Name,Length -AutoSize
+
+      - name: Bundle ClamAV + YARA para offline
+        shell: pwsh
+        run: |
+          powershell -ExecutionPolicy Bypass -File tools/bootstrap.ps1
+          Get-ChildItem clamav -Recurse -File | Measure-Object -Property Length -Sum | ForEach-Object { Write-Host "clamav: $($_.Sum/1MB) MB" }
+          Get-ChildItem yara | Format-Table Name,Length -AutoSize
+
+      - name: Build horash_setup_offline.exe (full offline)
+        shell: pwsh
+        run: |
+          & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" tools/horash_setup_offline.iss
+          if (-not (Test-Path dist/horash_setup_offline.exe)) { throw "horash_setup_offline.exe nao gerado" }
+          dir dist | Format-Table Name,Length -AutoSize
 
       - name: Publish to Releases
         uses: softprops/action-gh-release@v2
         with:
-          files: dist/Horash.exe
+          files: |
+            dist/horash.exe
+            dist/horash_setup.exe
+            dist/horash_setup_offline.exe
           generate_release_notes: true
           prerelease: ${{ contains(github.ref, '-beta') }}
         env:
