@@ -1,0 +1,47 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install deps
+        run: pip install -r requirements.txt
+
+      - name: Bundle ClamAV + YARA
+        shell: pwsh
+        run: |
+          powershell -ExecutionPolicy Bypass -File tools/bundle_all.ps1
+          Get-ChildItem clamav -Recurse | Select-Object FullName,Length | Select-Object -First 20 | Format-Table -AutoSize
+          Get-ChildItem yara | Format-Table Name,Length -AutoSize
+
+      - name: Build Horash.exe
+        run: python -m PyInstaller Horash.spec --noconfirm --clean
+
+      - name: Check exe
+        shell: pwsh
+        run: |
+          dir dist | Format-Table Name,Length -AutoSize
+          if (-not (Test-Path dist/Horash.exe)) { throw "dist/Horash.exe nao gerado" }
+
+      - name: Publish to Releases
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/Horash.exe
+          generate_release_notes: true
+          prerelease: ${{ contains(github.ref, '-beta') }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

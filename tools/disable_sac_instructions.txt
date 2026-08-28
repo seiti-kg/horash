@@ -1,0 +1,47 @@
+Smart App Control (SAC) - Como lidar com bloqueio do FileHasher.exe
+====================================================================
+
+SAC no Windows 11 bloqueia QUALQUER .exe nao assinado e nao reputado,
+mesmo como Admin. É diferente do SmartScreen/Defender.
+
+OPCAO 1 - RECOMENDADO (sem desativar SAC): Use launcher via Python assinado
+----------------------------------------------------------------------------
+SAC permite python.exe da Microsoft Store (assinado). Nossos launchers usam isso:
+
+ - Duplo clique em FileHasher.bat  (chama python main.py)
+ - Ou: powershell -ExecutionPolicy Bypass -File FileHasher.ps1
+ - Ou direto: python main.py  /  python server.py  /  start.bat
+
+Esses bypassam SAC porque o binario executado é python.exe (assinado), nao nosso .exe.
+
+OPCAO 2 - Assinar .exe com self-signed e confiar (mantem SAC ligado)
+--------------------------------------------------------------------
+1. Gere exe: build.bat  -> dist/FileHasher.exe
+2. Assine: powershell -ExecutionPolicy Bypass -File tools/sign_exe.ps1
+   - Se pedir, rode PowerShell como Admin para adicionar em LocalMachine\TrustedPublisher
+   - Script cria cert "FileHasher SelfSigned" e assina com SHA256 + timestamp
+3. Verifique: Get-AuthenticodeSignature dist/FileHasher.exe  -> Status Valid
+4. SAC agora confia porque cert esta em Trusted Publishers (CurrentUser ou LocalMachine)
+
+Se ainda bloquear: importe cert manualmente:
+  certmgr.msc -> Trusted Publishers -> Import -> selecione FileHasher SelfSigned
+
+OPCAO 3 - Desativar SAC temporariamente (menos seguro, mas simples)
+-------------------------------------------------------------------
+Windows Security > App & browser control > Smart App Control > Off
+OU Settings > Privacy & security > Windows Security > App & browser control > Open Windows Security
+
+Nota: Se SAC estava em "Enforced", ao desativar voce nao podera reativar para "Enforced" sem reinstalar Windows.
+Se estava em "Evaluation", pode ligar/desligar livremente.
+Registro: HKLM\SYSTEM\CurrentControlSet\Control\CI\Policy VerifiedAndReputablePolicyState
+  1 = Enforced, 2 = Evaluation, 0 = Off
+
+OPCAO 4 - Adicionar exclusao no Defender nao basta para SAC
+-------------------------------------------------------------
+SAC != Defender. Exclusao em Defender > Exclusoes nao desbloqueia SAC.
+
+RECOMENDACAO PARA VOCE:
+-----------------------
+Use FileHasher.bat (1 duplo clique, bypass SAC, ClamAV+YARA sempre ativo, sem instalar nada)
+Se quiser o .exe mesmo, rode tools/sign_exe.ps1 como Admin uma vez.
+

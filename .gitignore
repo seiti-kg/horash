@@ -1,0 +1,42 @@
+# Build / dist
+build/
+dist/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.spec.bak
+
+# Vendor gigante - baixe via tools/bundle_all.ps1, não commite
+clamav/
+# yara binários são grandes; regras ficam
+yara/*.exe
+yara/*.dll
+yara/rules/*.yar
+yara/*.pdb
+
+# Env
+.venv/
+venv/
+env/
+.env
+*.egg-info/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+Thumbs.db
+.DS_Store
+desktop.ini
+
+# Agent memory / local
+.agents/
+skills-lock.json
+
+# Logs
+*.log

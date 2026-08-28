@@ -1,0 +1,6 @@
+# File Hasher - dependencias
+# Server usa apenas stdlib, mas para build .exe:
+pyinstaller>=6.0
+# Opcional para teste:
+# yara-python  # se quiser usar lib ao inves de binario (nao obrigatorio)
+playwright>=1.40
