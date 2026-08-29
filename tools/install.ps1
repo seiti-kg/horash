@@ -115,6 +115,14 @@ try {
     & $python -m pip install -q --upgrade pip 2>&1 | Out-Null
     & $python -m pip install -q -r (Join-Path $installDir "requirements.txt") 2>&1 | Out-Null
     Write-Host "[*] dependencias ok" -ForegroundColor Green
+    # playwright precisa baixar browsers (~150mb)
+    Write-Host "[*] instalando browsers playwright..."
+    try {
+        & $python -m playwright install --with-deps chromium 2>&1 | Out-String | Write-Host
+        Write-Host "[*] playwright ok" -ForegroundColor Green
+    } catch {
+        Write-Host "[!] playwright install falhou (vt scrape sem browser): $($_.Exception.Message)" -ForegroundColor Yellow
+    }
 } catch {
     Write-Host "[!] falha pip: $($_.Exception.Message)" -ForegroundColor Yellow
 }
