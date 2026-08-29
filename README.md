@@ -15,56 +15,44 @@
 </p>
 
 <p align="center">
-  gera <strong>sha-256 sem upload</strong> (streaming 4mb, suporta gbs), consulta <strong>virustotal</strong> por hash e escaneia <strong>clamav + yara</strong> offline — sem limite de 650mb, sem rastros.<br>
-  janela app nativa (pywebview), sem navegador.
+  gera <strong>hash sha-256</strong>, consulta <strong>VirusTotal</strong> por hash e escaneia <strong>clamav + yara</strong> offline<br>
+  janela app nativa via pywebview.
 </p>
 
 ---
 
-## instalar
+## INSTALAR
 
-abra o **powershell** e cole:
+Abra o **powershell** e cole:
 
 ```ps1
 irm https://raw.githubusercontent.com/seiti-kg/horash/main/tools/install.ps1 | iex
 ```
 
-o que faz:
+O QUE FAZ:
 - instala em `%localappdata%\horash` (~45mb app + ~300mb clamav + 7mb yara na primeira vez, 2-5 min)
 - instala dependencias python (`pywebview`, `playwright`) se faltar
 - baixa clamav/yara via `tools/bootstrap.ps1` automaticamente
 - cria atalho na area de trabalho e `horash` no terminal
 
-depois:
+DEPOIS:
 ```ps1
-horash        # no terminal
-# ou duplo clique no atalho na area de trabalho
+horash        # no terminal ou duplo clique no atalho na area de trabalho
 ```
 
-para atualizar:
+PARA ATUALIZAR:
 ```ps1
 irm https://raw.githubusercontent.com/seiti-kg/horash/main/tools/install.ps1 | iex
 # preserva clamav/db e yara existentes
 ```
 
-para desinstalar:
+PARA DESINSTALAR:
 ```ps1
 powershell -ExecutionPolicy Bypass -File "$env:LOCALAPPDATA\horash\tools\uninstall.ps1"
 ```
 
 ---
-
-## uso dev
-
-```ps1
-git clone https://github.com/seiti-kg/horash.git
-cd horash
-powershell -ExecutionPolicy Bypass -File tools/bootstrap.ps1
-python src/main.py
-# abre janela app nativa em http://localhost:8765 (fallback navegador se webview2 faltar)
-```
-
-## estrutura
+## ESTRUTURA
 
 ```
 horash/
@@ -83,18 +71,18 @@ horash/
     └── bootstrap.ps1
 ```
 
-## fluxo por tamanho
+## FLUXO POR TAMANHO
 
 - `<= 650 mb`: sha-256 local → virustotal + scan local
 - `> 650 mb`: so scan local
 
-## endpoints
+## ENDPOINTS
 
 - `GET /health/scan` → `{"clamav_available":bool, "yara_available":bool}`
 - `POST /scan` header `X-Filename`, body `bytes` → `{"infected":bool, "signatures":[]}`
 
-## privacidade
+## PRIVACIDADE
 
-- hash 100% local, sem upload, sem `localstorage`
-- scan 100% offline apos `bootstrap.ps1`
-- temp deletado apos scan
+- Hash 100% local, sem upload, sem `localstorage`
+- Scan 100% offline apos `bootstrap.ps1`
+- Temp deletado apos scan
