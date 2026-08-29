@@ -12,7 +12,8 @@ REM usa diretorio do proprio .bat, nao o cwd
 set "HORASH_DIR=%~dp0"
 if "%HORASH_DIR:~-1%"=="\" set "HORASH_DIR=%HORASH_DIR:~0,-1%"
 
-where python >nul 2>nul
+REM verifica python real (ignora alias da Store que só abre a loja)
+python --version 2>nul | findstr /C:"Python 3." >nul
 if %ERRORLEVEL%==0 (
     python --version
     python "%HORASH_DIR%\src\main.py"
@@ -20,7 +21,7 @@ if %ERRORLEVEL%==0 (
     exit /b
 )
 
-where python3 >nul 2>nul
+python3 --version 2>nul | findstr /C:"Python 3." >nul
 if %ERRORLEVEL%==0 (
     python3 --version
     python3 "%HORASH_DIR%\src\main.py"
@@ -28,7 +29,7 @@ if %ERRORLEVEL%==0 (
     exit /b
 )
 
-where py >nul 2>nul
+py --version 2>nul | findstr /C:"Python 3." >nul
 if %ERRORLEVEL%==0 (
     py --version
     py "%HORASH_DIR%\src\main.py"
@@ -36,8 +37,10 @@ if %ERRORLEVEL%==0 (
     exit /b
 )
 
-if exist "%LOCALAPPDATA%\Microsoft\WindowsApps\python.exe" (
-    "%LOCALAPPDATA%\Microsoft\WindowsApps\python.exe" "%HORASH_DIR%\src\main.py"
+REM fallback: python instalado via install.ps1 pode estar no PATH mas precisa recarregar
+where python >nul 2>nul
+if %ERRORLEVEL%==0 (
+    python "%HORASH_DIR%\src\main.py"
     pause
     exit /b
 )

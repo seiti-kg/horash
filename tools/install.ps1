@@ -13,28 +13,65 @@ $tmpExtract = Join-Path $env:TEMP "horash-extract"
 Write-Host "[*] horash - instalador" -ForegroundColor Cyan
 Write-Host "[*] destino: $installDir"
 
-# 1. verifica python
-$python = $null
-foreach ($cmd in @("python", "python3", "py")) {
+# 1. verifica python (ignora alias da Store que só abre a loja)
+function Test-RealPython($cmd) {
     try {
-        $ver = & $cmd --version 2>&1
-        if ($LASTEXITCODE -eq 0) { $python = $cmd; Write-Host "[*] python encontrado: $ver ($cmd)" -ForegroundColor Green; break }
+        $out = & $cmd --version 2>&1 | Out-String
+        if ($LASTEXITCODE -eq 0 -and $out -match "Python 3\.") { return $out.Trim() }
+        return $null
+    } catch { return $null }
+}
+$python = $null
+$pythonVer = $null
+foreach ($cmd in @("python", "python3", "py")) {
+    $v = Test-RealPython $cmd
+    if ($v) { $python = $cmd; $pythonVer = $v; Write-Host "[*] python encontrado: $v ($cmd)" -ForegroundColor Green; break }
+    # se `where` aponta para WindowsApps\python.exe é alias, ignora
+    try {
+        $where = & where.exe $cmd 2>&1 | Out-String
+        if ($where -match "WindowsApps") { continue }
     } catch {}
 }
 if (-not $python) {
-    Write-Host "[!] python nao encontrado, tentando instalar via winget..." -ForegroundColor Yellow
+    Write-Host "[!] python nao encontrado (só alias da Store), instalando..." -ForegroundColor Yellow
+    $installed = $false
+    # tenta winget
     try {
         if (Get-Command winget -ErrorAction SilentlyContinue) {
-            winget install Python.Python.3.11 --silent --accept-package-agreements --accept-source-agreements
-            $python = "python"
-            Write-Host "[*] python instalado via winget, reinicie o terminal se falhar" -ForegroundColor Green
-        } else {
-            throw "winget nao encontrado"
+            Write-Host "[*] tentando winget..."
+            winget install --id Python.Python.3.11 -e --silent --accept-package-agreements --accept-source-agreements --source winget
+            Start-Sleep -Seconds 5
+            # atualiza PATH da sessao
+            $env:PATH = [Environment]::GetEnvironmentVariable("PATH","Machine") + ";" + [Environment]::GetEnvironmentVariable("PATH","User")
+            $v = Test-RealPython "python"
+            if ($v) { $python = "python"; $installed = $true; Write-Host "[*] python instalado via winget: $v" -ForegroundColor Green }
         }
-    } catch {
-        Write-Host "[!] instale python manualmente:" -ForegroundColor Red
-        Write-Host "    https://www.python.org/downloads/ ou https://apps.microsoft.com/detail/9NRWMJP3717K"
-        Write-Host "    depois rode novamente: irm https://raw.githubusercontent.com/$repo/$branch/tools/install.ps1 | iex"
+    } catch { Write-Host "[!] winget falhou: $($_.Exception.Message)" -ForegroundColor Yellow }
+    # fallback: baixa instalador oficial python.org silencioso
+    if (-not $installed) {
+        try {
+            Write-Host "[*] baixando python 3.11 do python.org..."
+            $pyUrl = "https://www.python.org/ftp/python/3.11.9/python-3.11.9-amd64.exe"
+            $pyInst = Join-Path $env:TEMP "python-installer.exe"
+            Invoke-WebRequest -Uri $pyUrl -OutFile $pyInst -UseBasicParsing -TimeoutSec 120
+            Write-Host "[*] instalando python silencioso (pode pedir permissao)..."
+            Start-Process $pyInst -ArgumentList "/quiet InstallAllUsers=0 PrependPath=1 Include_test=0" -Wait
+            Start-Sleep -Seconds 5
+            $env:PATH = [Environment]::GetEnvironmentVariable("PATH","Machine") + ";" + [Environment]::GetEnvironmentVariable("PATH","User")
+            $v = Test-RealPython "python"
+            if (-not $v) { $v = Test-RealPython "py" }
+            if ($v) { $python = if (Test-RealPython "python") { "python" } else { "py" }; $installed = $true; Write-Host "[*] python instalado: $v" -ForegroundColor Green }
+            Remove-Item $pyInst -Force -ErrorAction SilentlyContinue
+        } catch {
+            Write-Host "[!] falha instalador python.org: $($_.Exception.Message)" -ForegroundColor Red
+        }
+    }
+    if (-not $installed) {
+        Write-Host "[!] nao foi possivel instalar python automaticamente" -ForegroundColor Red
+        Write-Host "    instale manualmente e rode novamente:" -ForegroundColor Yellow
+        Write-Host "    https://apps.microsoft.com/detail/9NRWMJP3717K  (1 clique, recomendado)" -ForegroundColor Yellow
+        Write-Host "    ou https://www.python.org/downloads/" -ForegroundColor Yellow
+        Write-Host "    depois: irm https://raw.githubusercontent.com/$repo/$branch/tools/install.ps1 | iex"
         exit 1
     }
 }
