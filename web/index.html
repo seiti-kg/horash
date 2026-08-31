@@ -10,7 +10,7 @@
 <link rel="apple-touch-icon" href="favicon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Geist+Mono:wght@400;500&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
 <script src="sha256.min.js"></script>
 </head>
@@ -18,8 +18,8 @@
 <div class="container">
   <div class="topbar">
     <div class="brand">
-      <div class="logo" style="padding:0;overflow:hidden;background:transparent;border:none"><img src="favicon.png" alt="Horash" style="width:32px;height:32px;border-radius:999px;display:block"></div>
-      <div class="brand-text"><b>Horash</b></div>
+      <div class="logo"><img src="favicon.png" alt="Horash"></div>
+      <div class="brand-text"><b>HORASH</b></div>
     </div>
     <div class="nav" role="tablist">
       <button class="active" data-tab="bandeja" role="tab" aria-selected="true">Bandeja</button>
@@ -34,28 +34,23 @@
 
   <!-- BANDEJA VIEW -->
   <div class="view active" id="view-bandeja">
-    <div class="hero" style="padding:18px 4px 8px">
-      <h1 style="font-size:36px;letter-spacing:-0.8px">Solte os arquivos.</h1>
-      <p style="margin-top:6px;font-size:13px;max-width:520px">SHA-256 local • VirusTotal quando couber • ClamAV+YARA sempre.</p>
-    </div>
-
     <div class="drop-zone" id="dropZone" role="button" tabindex="0" aria-label="Arraste arquivos">
       <input type="file" id="fileInput" multiple>
       <div class="drop-icon">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 16V4"/><path d="M8 8l4-4 4 4"/><path d="M4 16v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>
       </div>
-      <p class="title">Arraste para a bandeja</p>
-      <p class="subtitle">Múltiplos • streaming 4MB • GB sem travar • clique ou Ctrl+V</p>
-      <button class="btn-pick" type="button" id="pickBtn">Selecionar evidências</button>
+      <p class="title">Arraste arquivos</p>
+      <p class="subtitle">múltiplos · streaming 4MB · clique ou Ctrl+V</p>
+      <button class="btn-pick" type="button" id="pickBtn">Selecionar</button>
     </div>
 
     <div class="toolbar">
       <div class="count" id="count">Nenhum arquivo na custódia</div>
       <div class="actions">
         <button class="btn" id="copyAllBtn" disabled>Copiar hashes</button>
-        <button class="btn btn-vt" id="openAllVtBtn" disabled>Abrir VT</button>
+        <button class="btn" id="openAllVtBtn" disabled>Abrir VT</button>
         <button class="btn" id="checkAllApiBtn" disabled>API VT</button>
-        <button class="btn btn-scan" id="scanAllLocalBtn" disabled>Scan local</button>
+        <button class="btn" id="scanAllLocalBtn" disabled>Scan local</button>
         <button class="btn btn-danger" id="clearBtn" disabled>Limpar</button>
       </div>
     </div>
@@ -65,11 +60,11 @@
       <table>
         <thead>
           <tr>
-            <th>Arquivo <span>evidence</span></th>
-            <th>SHA-256 <span>hash</span></th>
-            <th>VirusTotal <span>&lt;650MB</span></th>
-            <th>Scan Local <span>ClamAV+YARA</span></th>
-            <th>Ações <span>actions</span></th>
+            <th>Arquivo</th>
+            <th>SHA-256</th>
+            <th>VirusTotal</th>
+            <th>Scan local</th>
+            <th>Ações</th>
           </tr>
         </thead>
         <tbody id="tbody">
@@ -79,8 +74,8 @@
     </div>
 
     <footer>
-      <span><strong>Lab protocol:</strong> <code>js-sha256</code> streaming • <code>no localStorage</code> • <code>purge on close</code></span>
-      <span style="opacity:0.6">Feche a aba • sem rastros</span>
+      <span>sha-256 streaming · no localStorage · purge on close</span>
+      <span>fechar a aba limpa tudo</span>
     </footer>
   </div>
 
@@ -89,9 +84,9 @@
     <div class="config-grid">
       <div class="config-card">
         <h3>VirusTotal API</h3>
-        <label for="apiKey">API Key — traz o placar para dentro</label>
-        <input type="password" id="apiKey" placeholder="Cole sua API key aqui — vazio = modo link" autocomplete="off" spellcheck="false">
-        <div class="hint">Vazio → botão <code>VT anonimo</code> abre <code>virustotal.com/gui/file/{hash}</code> em anônima. Com key → mostra <strong>X / 72</strong> na tabela. <a href="https://www.virustotal.com/gui/join-us" target="_blank">Pegar key grátis</a> • 4 req/min.</div>
+        <label for="apiKey">API Key</label>
+        <input type="password" id="apiKey" placeholder="vazio = modo link" autocomplete="off" spellcheck="false">
+        <div class="hint">Vazio → botão <code>VT anonimo</code> abre <code>virustotal.com/gui/file/{hash}</code> em anônima. Com key → mostra <strong>X / 72</strong> na tabela. <a href="https://www.virustotal.com/gui/join-us" target="_blank">Pegar key grátis</a> · 4 req/min.</div>
         <div class="status-line" id="serverStatus" style="margin-top:12px">
           <span class="status-dot" id="serverDot"></span>
           <span id="serverStatusText">Verificando servidor…</span>
@@ -99,18 +94,18 @@
       </div>
       <div class="config-card">
         <h3>Scan Local</h3>
-        <div style="font-size:13px;line-height:1.6;color:var(--text-2)">ClamAV + YARA sempre ativo para qualquer tamanho, essencial para <code>&gt;650MB</code> onde VT não aceita.</div>
+        <div class="config-desc">ClamAV + YARA sempre ativo para qualquer tamanho, essencial para <code>&gt;650MB</code> onde VT não aceita.</div>
         <div class="status-line" id="localHealthBox">
           <span class="status-dot" id="localDot"></span>
           <span id="localHealthText">Verificando…</span>
         </div>
         <div class="hint" id="localHealthDetail" style="margin-top:8px"></div>
-        <div class="hint">Instalar: <code>powershell -ExecutionPolicy Bypass -File tools/bundle_all.ps1</code> • Atualizar DB: <code>clamav/freshclam.exe</code></div>
+        <div class="hint">Instalar: <code>powershell -ExecutionPolicy Bypass -File tools/bundle_all.ps1</code> · Atualizar DB: <code>clamav/freshclam.exe</code></div>
       </div>
     </div>
     <div class="config-card" style="margin-top:14px">
-      <h3>Privacidade & limites</h3>
-      <div style="font-size:13px;line-height:1.7;color:var(--text-2)">
+      <h3>Privacidade &amp; limites</h3>
+      <div class="config-desc">
         • Hash <code>streaming 4MB</code> local — sem upload, sem <code>localStorage</code>, <code>beforeunload: purge</code>.<br>
         • VT só tem resultado se alguém já enviou. Arquivo novo ou <code>&gt;650MB</code> → <code>404 / No comments</code> é normal.<br>
         • <code>FileHasher.bat</code> bypassa Smart App Control via <code>python.exe</code> assinado e abre <code>--incognito</code> real.
@@ -123,7 +118,7 @@
 <div class="modal" id="helpModal" aria-hidden="true">
   <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="helpTitle">
     <div class="modal-head">
-      <h2 id="helpTitle">Como funciona <em>— 3 passos</em></h2>
+      <h2 id="helpTitle">Como funciona</h2>
       <button class="x-btn" id="closeHelp" aria-label="Fechar">✕</button>
     </div>
     <div class="modal-body">
@@ -131,7 +126,7 @@
       <p>Arraste arquivos para a bandeja. O app gera <code>SHA-256</code> no seu dispositivo com <code>streaming 4MB</code> (<code>&lt;50MB</code> via <code>WebCrypto</code>, <code>&ge;50MB</code> via <code>js-sha256</code>) — funciona para GBs sem estourar RAM. Nada sai do seu PC.</p>
       <h4>02 — Verify no VirusTotal</h4>
       <p>Se <code>&le;650MB</code>: <code>VT anonimo</code> abre <code>virustotal.com/gui/file/{hash}</code> em anônima (1 clique via <code>server.py</code>), ou com API key mostra <code>X / 72</code> dentro da tabela. <code>&gt;650MB</code> o VT não aceita — use Scan Local.</p>
-      <h4>03 — Scan Local sempre</h4>
+      <h4>03 — Scan local sempre</h4>
       <p>Após o hash, o app envia para <code>POST /scan</code> local e roda <code>ClamAV (2000M)</code> + <code>YARA</code> (<code>server.py</code> + <code>scanner.py</code>). Resultado <code>✓ Limpo</code> / <code>⛔ Infectado</code> com <code>ClamAV + YARA + tempo</code>. Temp deletado após scan.</p>
       <h4>Privacidade</h4>
       <p>Sem <code>localStorage</code>, sem cookies. Fechar a aba limpa <code>files</code> e <code>apiKey</code>. Para anônimo real, rode <code>FileHasher.bat</code>.</p>
