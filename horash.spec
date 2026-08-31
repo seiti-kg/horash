@@ -19,6 +19,8 @@ except Exception as e:
 
 datas = [
     ('web/index.html', '.'),
+    ('web/style.css', '.'),
+    ('web/app.js', '.'),
     ('web/sha256.min.js', '.'),
     ('web/favicon.ico', '.'),
     ('web/favicon.png', '.'),
