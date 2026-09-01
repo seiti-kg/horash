@@ -23,7 +23,6 @@ import os
 import sys
 import json
 import tempfile
-import cgi
 import time
 
 try:
