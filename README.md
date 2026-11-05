@@ -2,8 +2,6 @@
   <img src="assets/logo.png" alt="horash" width="360">
 </p>
 
-<h1 align="center">horash</h1>
-
 <p align="center">
   <em>triagem local de arquivos em lote: sha-256, virustotal + clamav/yara</em>
 </p>
