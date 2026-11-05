@@ -8,9 +8,6 @@
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="icon" type="image/png" sizes="512x512" href="favicon.png">
 <link rel="apple-touch-icon" href="favicon.png">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
 <script src="sha256.min.js"></script>
 </head>
@@ -68,13 +65,13 @@
           </tr>
         </thead>
         <tbody id="tbody">
-          <tr><td colspan="5"><div class="empty-state"><span>⬢</span><b>Bandeja vazia</b>Solte arquivos acima. Hash local + VT + ClamAV/YARA. Fechar limpa tudo.<br><span style="font-family:Geist Mono,monospace;font-size:11px;color:var(--muted);margin-top:8px;display:inline-block;border:1px dashed var(--border);padding:4px 8px;border-radius:999px">01 Hash → 02 Verify → 03 Scan</span></div></td></tr>
+          <tr><td colspan="5"><div class="empty-state"><span>⬢</span><b>Bandeja vazia</b>Solte arquivos acima. Hash local + VT + ClamAV/YARA. Fechar limpa tudo.<br><span style="font-family:ui-monospace,Consolas,monospace;font-size:11px;color:var(--muted);margin-top:8px;display:inline-block;border:1px dashed var(--border);padding:4px 8px;border-radius:999px">01 Hash → 02 Verify → 03 Scan</span></div></td></tr>
         </tbody>
       </table>
     </div>
 
     <footer>
-      <span>sha-256 streaming · no localStorage · purge on close</span>
+      <span>sha-256 streaming · sem localStorage · purge on close</span>
       <span>fechar a aba limpa tudo</span>
     </footer>
   </div>
@@ -86,7 +83,7 @@
         <h3>VirusTotal API</h3>
         <label for="apiKey">API Key</label>
         <input type="password" id="apiKey" placeholder="vazio = modo link" autocomplete="off" spellcheck="false">
-        <div class="hint">Vazio → botão <code>VT anonimo</code> abre <code>virustotal.com/gui/file/{hash}</code> em anônima. Com key → mostra <strong>X / 72</strong> na tabela. <a href="https://www.virustotal.com/gui/join-us" target="_blank">Pegar key grátis</a> · 4 req/min.</div>
+        <div class="hint">Ao soltar um arquivo <code>&le;650MB</code>, o hash é consultado automaticamente: com key via API (<strong>X / 72</strong> na tabela), sem key via Playwright no site do VT. <code>&gt;650MB</code> não consulta. <a href="https://www.virustotal.com/gui/join-us" target="_blank">Pegar key grátis</a> · 4 req/min.</div>
         <div class="status-line" id="serverStatus" style="margin-top:12px">
           <span class="status-dot" id="serverDot"></span>
           <span id="serverStatusText">Verificando servidor…</span>
@@ -94,21 +91,21 @@
       </div>
       <div class="config-card">
         <h3>Scan Local</h3>
-        <div class="config-desc">ClamAV + YARA sempre ativo para qualquer tamanho, essencial para <code>&gt;650MB</code> onde VT não aceita.</div>
+        <div class="config-desc">ClamAV (até 2GB) + YARA, essencial para <code>&gt;650MB</code> onde o VT não é consultado. Acima de 2GB o ClamAV é ignorado e o resultado fica <strong>parcial</strong>.</div>
         <div class="status-line" id="localHealthBox">
           <span class="status-dot" id="localDot"></span>
           <span id="localHealthText">Verificando…</span>
         </div>
         <div class="hint" id="localHealthDetail" style="margin-top:8px"></div>
-        <div class="hint">Instalar: <code>powershell -ExecutionPolicy Bypass -File tools/bundle_all.ps1</code> · Atualizar DB: <code>clamav/freshclam.exe</code></div>
+        <div class="hint">Instalar: <code>powershell -ExecutionPolicy Bypass -File tools/bootstrap.ps1</code> · Atualizar DB: <code>clamav/freshclam.exe</code></div>
       </div>
     </div>
     <div class="config-card" style="margin-top:14px">
       <h3>Privacidade &amp; limites</h3>
       <div class="config-desc">
-        • Hash <code>streaming 4MB</code> local — sem upload, sem <code>localStorage</code>, <code>beforeunload: purge</code>.<br>
-        • VT só tem resultado se alguém já enviou. Arquivo novo ou <code>&gt;650MB</code> → <code>404 / No comments</code> é normal.<br>
-        • <code>FileHasher.bat</code> bypassa Smart App Control via <code>python.exe</code> assinado e abre <code>--incognito</code> real.
+        • Hash <code>streaming 4MB</code> gerado localmente; o hash (não o arquivo) é enviado ao VT na consulta. Sem <code>localStorage</code>, <code>beforeunload: purge</code>.<br>
+        • VT só tem resultado se alguém já enviou; arquivo novo → <code>404 / No comments</code> é normal. Acima de <code>&gt;650MB</code> o VT não é consultado.<br>
+        • <code>horash.bat</code> inicia o app via <code>python.exe</code> assinado (bypass do Smart App Control); o botão <code>VT anônimo</code> abre o navegador em <code>--incognito</code> real.
       </div>
     </div>
   </div>
@@ -123,13 +120,13 @@
     </div>
     <div class="modal-body">
       <h4>01 — Hash local</h4>
-      <p>Arraste arquivos para a bandeja. O app gera <code>SHA-256</code> no seu dispositivo com <code>streaming 4MB</code> (<code>&lt;50MB</code> via <code>WebCrypto</code>, <code>&ge;50MB</code> via <code>js-sha256</code>) — funciona para GBs sem estourar RAM. Nada sai do seu PC.</p>
+      <p>Arraste arquivos para a bandeja. O hash <code>SHA-256</code> é gerado no seu dispositivo com <code>streaming 4MB</code> (<code>&lt;50MB</code> via <code>WebCrypto</code>, <code>&ge;50MB</code> via <code>js-sha256</code>) — funciona para GBs sem estourar RAM. O arquivo não sai do PC; apenas o hash vai ao VT.</p>
       <h4>02 — Verify no VirusTotal</h4>
-      <p>Se <code>&le;650MB</code>: <code>VT anonimo</code> abre <code>virustotal.com/gui/file/{hash}</code> em anônima (1 clique via <code>server.py</code>), ou com API key mostra <code>X / 72</code> dentro da tabela. <code>&gt;650MB</code> o VT não aceita — use Scan Local.</p>
-      <h4>03 — Scan local sempre</h4>
-      <p>Após o hash, o app envia para <code>POST /scan</code> local e roda <code>ClamAV (2000M)</code> + <code>YARA</code> (<code>server.py</code> + <code>scanner.py</code>). Resultado <code>✓ Limpo</code> / <code>⛔ Infectado</code> com <code>ClamAV + YARA + tempo</code>. Temp deletado após scan.</p>
+      <p>Se <code>&le;650MB</code>: o hash é consultado automaticamente — com API key mostra <code>X / 72</code> na tabela; sem key usa Playwright no site do VT. O botão <code>VT anônimo</code> abre o relatório em aba anônima via <code>server.py</code>. <code>&gt;650MB</code>: o app não consulta o VT.</p>
+      <h4>03 — Scan local</h4>
+      <p>O app envia para <code>POST /scan</code> local e roda <code>ClamAV (até 2000MB)</code> + <code>YARA</code>. Resultado <code>✓ Limpo</code>, <code>⛔ Infectado</code> ou <code>⚠️ Parcial</code> quando um engine falha/é ignorado. Acima de 2GB o ClamAV não roda. Temp deletado após o scan.</p>
       <h4>Privacidade</h4>
-      <p>Sem <code>localStorage</code>, sem cookies. Fechar a aba limpa <code>files</code> e <code>apiKey</code>. Para anônimo real, rode <code>FileHasher.bat</code>.</p>
+      <p>Sem <code>localStorage</code>, sem cookies. Fechar a aba limpa <code>files</code> e <code>apiKey</code>. Para anônimo real, rode <code>horash.bat</code>.</p>
     </div>
   </div>
 </div>

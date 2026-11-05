@@ -130,9 +130,13 @@ try {
 # 5. baixa protecoes (clamav/yara) se nao tem
 $needBootstrap = $false
 if (-not (Test-Path (Join-Path $installDir "yara\yara64.exe"))) { $needBootstrap = $true }
+$hasYaraRules = (Test-Path (Join-Path $installDir "yara\rules\full.yar")) -or
+                (Test-Path (Join-Path $installDir "yara\rules\extended.yar")) -or
+                (Test-Path (Join-Path $installDir "yara\rules\core.yar"))
+if (-not $hasYaraRules) { $needBootstrap = $true }
 if (-not (Test-Path (Join-Path $installDir "clamav\clamscan.exe"))) { $needBootstrap = $true }
 if ($needBootstrap) {
-    Write-Host "[*] baixando protecoes (clamav ~300mb + yara 7mb, 2-5 min)..." -ForegroundColor Yellow
+    Write-Host "[*] baixando protecoes (clamav ~300mb + yara full ~20mb, 2-5 min)..." -ForegroundColor Yellow
     try {
         $bootstrap = Join-Path $installDir "tools\bootstrap.ps1"
         if (Test-Path $bootstrap) {

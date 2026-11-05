@@ -39,11 +39,12 @@ else:
     spec.loader.exec_module(server_mod)
 
 PORT = 8765
+HOST = getattr(server_mod, "HOST", "127.0.0.1")
 
 def is_port_in_use(port):
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     try:
-        s.bind(("", port))
+        s.bind((HOST, port))
         s.close()
         return False
     except OSError:
@@ -61,7 +62,7 @@ def wait_server(host="127.0.0.1", port=PORT, timeout=10):
 
 def start_server_blocking():
     handler = server_mod.Handler
-    httpd = server_mod.ThreadedTCPServer(("", PORT), handler)
+    httpd = server_mod.ThreadedTCPServer((HOST, PORT), handler)
     print(f"[*] horash - servidor em http://localhost:{PORT}")
     try:
         info = server_mod.check_scanners()

@@ -6,7 +6,7 @@ import sys
 import os
 import shutil
 import subprocess
-import platform
+import urllib.parse
 
 try:
     import winreg
@@ -17,17 +17,19 @@ VT_URL = "https://www.virustotal.com/gui/file/{hash}"
 
 def normalize_input(arg: str) -> str:
     arg = arg.strip()
-    if arg.startswith("http"):
+    try:
+        parsed = urllib.parse.urlsplit(arg)
+    except ValueError:
+        parsed = None
+    if parsed and parsed.scheme in ("http", "https") and parsed.netloc:
         return arg
-    # bloqueia teste/invalido
     if arg == "test" or len(arg) < 10:
         raise ValueError(f"hash invalido/teste ignorado: {arg}")
     if len(arg) == 64 and all(c in "0123456789abcdefABCDEF" for c in arg):
         return VT_URL.format(hash=arg.lower())
-    # se nao for sha256 valido, assume que ja e URL ou retorna como esta mas valida
     if len(arg) != 64:
         raise ValueError(f"hash deve ter 64 hex (SHA256), recebido: {arg}")
-    return arg
+    raise ValueError(f"hash deve conter apenas hex: {arg}")
 
 def find_chrome_path():
     candidates = [
@@ -117,19 +119,11 @@ def open_incognito(url: str) -> bool:
         except Exception as e:
             print(f"Falha Firefox: {e}")
 
-    # 4. Fallback: tenta via start (usa navegador padrao mas sem flag - melhor que nada)
-    try:
-        if platform.system() == "Windows":
-            # start chrome --incognito funciona se chrome for padrao ou estiver no PATH
-            subprocess.Popen(f'start "" chrome --incognito "{url}"', shell=True)
-            return True
-    except Exception as e:
-        print(f"Fallback falhou: {e}")
-
+    # 4. Fallback: navegador padrao, sem shell e sem flags de anonimato.
     print("[vt_incognito] Nenhum navegador com modo anonimo encontrado. Abrindo normal...")
     import webbrowser
-    webbrowser.open(url)
-    return False
+
+    return webbrowser.open(url)
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:

@@ -18,7 +18,7 @@
 }
 html{scroll-behavior:smooth}
 body{
-  font-family:'Geist Mono',monospace;
+  font-family:ui-monospace,SFMono-Regular,'Cascadia Mono',Consolas,'Liberation Mono',monospace;
   font-size:13px;
   background:var(--bg);
   color:var(--text);

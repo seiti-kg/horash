@@ -65,8 +65,19 @@ if ($doClamav) {
 
 if ($doYara) {
     $yaraDir = Join-Path $projectRoot "yara"
-    $rulesYar = Join-Path $yaraDir "rules.yar"
-    $hasRules = (Test-Path $rulesYar) -and ((Get-Item $rulesYar -ErrorAction SilentlyContinue).Length -gt 5000)
+    $ruleCandidates = @(
+        (Join-Path $yaraDir "rules\full.yar"),
+        (Join-Path $yaraDir "rules\extended.yar"),
+        (Join-Path $yaraDir "rules\core.yar"),
+        (Join-Path $yaraDir "rules.yar")
+    )
+    $hasRules = $false
+    foreach ($candidate in $ruleCandidates) {
+        if ((Test-Path $candidate) -and ((Get-Item $candidate -ErrorAction SilentlyContinue).Length -gt 5000)) {
+            $hasRules = $true
+            break
+        }
+    }
     if ($hasRules -and (Test-Path (Join-Path $yaraDir "yara64.exe"))) {
         Write-Host "[*] yara ja instalado em $yaraDir, pulando" -ForegroundColor Green
     } else {

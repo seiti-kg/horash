@@ -13,6 +13,18 @@ import tempfile
 import glob
 import time
 
+CLAMAV_MAX_MB = 2000
+CLAMAV_MAX_BYTES = CLAMAV_MAX_MB * 1024 * 1024
+CLAMAV_TIMEOUT_S = 600
+YARA_TIMEOUT_S = 300
+
+
+def _short(text, limit=200):
+    """Uma linha curta para exibir em erro/aviso sem despejar o output inteiro."""
+    line = " ".join(str(text or "").split())
+    return line[:limit]
+
+
 def get_bundle_base():
     # PyInstaller extrai para sys._MEIPASS; dev: project_root (parent de src/)
     if hasattr(sys, '_MEIPASS'):
@@ -85,7 +97,11 @@ def find_yara_rules():
     candidates = []
     for base in seen:
         candidates.extend([
+            os.path.join(base, "yara", "rules", "full.yar"),
+            os.path.join(base, "yara", "rules", "extended.yar"),
+            os.path.join(base, "yara", "rules", "core.yar"),
             os.path.join(base, "yara", "rules.yar"),
+            os.path.join(base, "yara", "fallback.yar"),
             os.path.join(base, "rules.yar"),
             os.path.join(base, "rules", "index.yar"),
         ])
@@ -96,9 +112,28 @@ def find_yara_rules():
     for base in seen:
         for root in [os.path.join(base, "yara")]:
             if os.path.isdir(root):
-                files = glob.glob(os.path.join(root, "**", "*.yar"), recursive=True)
+                files = sorted(glob.glob(os.path.join(root, "**", "*.yar"), recursive=True))
                 if files:
                     return files[0]
+    return None
+
+
+def find_yara_compiled(rules_path):
+    """Retorna o .yarc compilado se for mais novo que o .yar de origem."""
+    if not rules_path or not os.path.isfile(rules_path):
+        return None
+    try:
+        rules_mtime = os.path.getmtime(rules_path)
+    except OSError:
+        return None
+    candidates = [os.path.splitext(rules_path)[0] + ".yarc", rules_path + "c"]
+    for candidate in candidates:
+        if os.path.isfile(candidate):
+            try:
+                if os.path.getmtime(candidate) >= rules_mtime:
+                    return candidate
+            except OSError:
+                continue
     return None
 
 def get_clamav_db_path():
@@ -126,27 +161,56 @@ def check_scanners():
         "yara_available": bool(yara),
         "yara_rules": rules,
         "yara_rules_available": bool(rules),
+        "yara_compiled": find_yara_compiled(rules),
     }
 
 def scan_with_clamav(file_path):
-    """Retorna dict {infected: bool, signature: str, output: str, time_ms: int}"""
+    """Retorna dict com status: clean|infected|error|unavailable|skipped."""
     clamscan = find_clamscan()
     if not clamscan:
-        return {"available": False, "error": "ClamAV nao encontrado. Instale via tools/install_clamav.ps1 ou bundle no .exe"}
-    
+        return {
+            "available": False,
+            "status": "unavailable",
+            "infected": False,
+            "reason": "ClamAV nao encontrado",
+            "error": "ClamAV nao encontrado. Instale via tools/install_clamav.ps1 ou bundle no .exe",
+        }
+
+    # O ClamAV nao consegue abrir arquivos acima de 2 GiB; com --max-filesize ele
+    # pularia o arquivo e retornaria "OK", escondendo a cobertura parcial.
+    try:
+        size = os.path.getsize(file_path)
+    except OSError as e:
+        return {
+            "available": True,
+            "status": "error",
+            "infected": False,
+            "reason": f"nao foi possivel ler o arquivo: {e}",
+            "error": str(e),
+            "time_ms": 0,
+        }
+    if size > CLAMAV_MAX_BYTES:
+        return {
+            "available": True,
+            "status": "skipped",
+            "infected": False,
+            "signature": None,
+            "reason": f"arquivo maior que {CLAMAV_MAX_MB} MB (limite do ClamAV)",
+            "output": "",
+            "time_ms": 0,
+        }
+
     db = get_clamav_db_path()
     cmd = [clamscan, "--no-summary", "--stdout"]
     if db:
         cmd.extend(["--database", db])
-    # ClamAV limite real ~2147M (2GiB-1), usa 2000M para evitar warning
-    cmd.extend(["--max-filesize=2000M", "--max-scansize=2000M"])
+    cmd.extend([f"--max-filesize={CLAMAV_MAX_MB}M", f"--max-scansize={CLAMAV_MAX_MB}M"])
     cmd.append(file_path)
     t0 = time.time()
-    
+
     try:
-        # timeout 10 min para GB
-        result = subprocess.run(cmd, capture_output=True, text=True, timeout=600)
-        elapsed = int((time.time()-t0)*1000)
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=CLAMAV_TIMEOUT_S)
+        elapsed = int((time.time() - t0) * 1000)
         output = (result.stdout or "") + (result.stderr or "")
         # clamscan exit code: 0 clean, 1 infected, 2 error
         if result.returncode == 1:
@@ -155,86 +219,242 @@ def scan_with_clamav(file_path):
                 if "FOUND" in line:
                     parts = line.split(":")
                     if len(parts) >= 2:
-                        sig = parts[-1].replace("FOUND","").strip()
+                        sig = parts[-1].replace("FOUND", "").strip()
                     break
-            return {"available": True, "infected": True, "signature": sig, "output": output.strip(), "time_ms": elapsed}
-        elif result.returncode == 0:
-            return {"available": True, "infected": False, "signature": None, "output": "OK", "time_ms": elapsed}
-        else:
-            return {"available": True, "infected": False, "error": output.strip() or f"exit {result.returncode}", "time_ms": elapsed}
+            return {
+                "available": True,
+                "status": "infected",
+                "infected": True,
+                "signature": sig,
+                "output": output.strip(),
+                "time_ms": elapsed,
+            }
+        if result.returncode == 0:
+            return {
+                "available": True,
+                "status": "clean",
+                "infected": False,
+                "signature": None,
+                "output": "OK",
+                "time_ms": elapsed,
+            }
+        return {
+            "available": True,
+            "status": "error",
+            "infected": False,
+            "reason": _short(output) or f"exit {result.returncode}",
+            "error": output.strip() or f"exit {result.returncode}",
+            "time_ms": elapsed,
+        }
     except subprocess.TimeoutExpired:
-        return {"available": True, "error": "Timeout scan (>10min) - arquivo muito grande ou travado", "time_ms": int((time.time()-t0)*1000)}
+        return {
+            "available": True,
+            "status": "error",
+            "infected": False,
+            "reason": f"timeout (>{CLAMAV_TIMEOUT_S // 60} min)",
+            "error": "Timeout scan (>10min) - arquivo muito grande ou travado",
+            "time_ms": int((time.time() - t0) * 1000),
+        }
     except Exception as e:
-        return {"available": True, "error": str(e), "time_ms": int((time.time()-t0)*1000)}
+        return {
+            "available": True,
+            "status": "error",
+            "infected": False,
+            "reason": _short(e),
+            "error": str(e),
+            "time_ms": int((time.time() - t0) * 1000),
+        }
 
 def scan_with_yara(file_path):
+    """Retorna dict com status: clean|infected|error|unavailable."""
     yara = find_yara()
     rules = find_yara_rules()
     if not yara:
-        return {"available": False, "error": "YARA nao encontrado"}
+        return {
+            "available": False,
+            "status": "unavailable",
+            "infected": False,
+            "reason": "YARA nao encontrado",
+            "error": "YARA nao encontrado",
+        }
     if not rules:
-        return {"available": False, "error": "Regras YARA nao encontradas (yara/rules.yar)"}
+        return {
+            "available": True,
+            "status": "error",
+            "infected": False,
+            "reason": "regras YARA nao encontradas (yara/rules.yar)",
+            "error": "Regras YARA nao encontradas (yara/rules.yar)",
+        }
     t0 = time.time()
-    
-    # Se rules for diretorio com varias .yar, precisa compilar? yara aceita arquivo unico que inclui outros
-    # Tenta rodar direto
-    cmd = [yara, "-r", rules, file_path] if os.path.isdir(rules) else [yara, rules, file_path]
-    # yara -r nao existe, na verdade yara <rules> <target>, se rules for dir usa glob
-    # Vamos tratar: se rules for arquivo, usa ele; se for dir, pega todos .yar
+
     if os.path.isdir(rules):
         yar_files = glob.glob(os.path.join(rules, "**", "*.yar"), recursive=True)
         if not yar_files:
-            return {"available": True, "error": "Nenhuma regra .yar encontrada", "time_ms": int((time.time()-t0)*1000)}
+            return {
+                "available": True,
+                "status": "error",
+                "infected": False,
+                "reason": "nenhuma regra .yar encontrada",
+                "error": "Nenhuma regra .yar encontrada",
+                "time_ms": int((time.time() - t0) * 1000),
+            }
         hits = []
+        failures = 0
         for rf in yar_files[:50]:
             try:
-                r = subprocess.run([yara, rf, file_path], capture_output=True, text=True, timeout=60)
+                r = subprocess.run(
+                    [yara, rf, file_path],
+                    capture_output=True,
+                    text=True,
+                    timeout=60,
+                )
                 if r.stdout.strip():
                     hits.append(r.stdout.strip())
-            except:
-                continue
-        elapsed = int((time.time()-t0)*1000)
+            except Exception:
+                failures += 1
+        elapsed = int((time.time() - t0) * 1000)
         if hits:
-            return {"available": True, "infected": True, "signature": "; ".join(hits)[:500], "output": "\n".join(hits)[:2000], "time_ms": elapsed}
-        return {"available": True, "infected": False, "output": "OK", "time_ms": elapsed}
-    
+            return {
+                "available": True,
+                "status": "infected",
+                "infected": True,
+                "signature": "; ".join(hits)[:500],
+                "output": "\n".join(hits)[:2000],
+                "time_ms": elapsed,
+            }
+        if failures:
+            return {
+                "available": True,
+                "status": "error",
+                "infected": False,
+                "reason": f"falha em {failures} arquivo(s) de regras",
+                "error": f"Falha ao executar YARA em {failures} arquivo(s) de regras",
+                "time_ms": elapsed,
+            }
+        return {
+            "available": True,
+            "status": "clean",
+            "infected": False,
+            "output": "OK",
+            "time_ms": elapsed,
+        }
+
+    compiled = find_yara_compiled(rules)
+    cmd = [yara, "-C", compiled, file_path] if compiled else [yara, rules, file_path]
     try:
-        result = subprocess.run(cmd, capture_output=True, text=True, timeout=300)
-        elapsed = int((time.time()-t0)*1000)
-        output = result.stdout.strip()
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=YARA_TIMEOUT_S)
+        elapsed = int((time.time() - t0) * 1000)
+        output = (result.stdout or "").strip()
+        if result.returncode != 0:
+            err = (result.stderr or output or f"exit {result.returncode}").strip()
+            return {
+                "available": True,
+                "status": "error",
+                "infected": False,
+                "reason": _short(err),
+                "error": err,
+                "time_ms": elapsed,
+            }
         if output:
             sigs = list(set([line.split()[0] for line in output.splitlines() if line.strip()]))
-            return {"available": True, "infected": True, "signature": ", ".join(sigs)[:500], "output": output[:2000], "time_ms": elapsed}
-        return {"available": True, "infected": False, "output": "OK", "time_ms": elapsed}
+            return {
+                "available": True,
+                "status": "infected",
+                "infected": True,
+                "signature": ", ".join(sigs)[:500],
+                "output": output[:2000],
+                "time_ms": elapsed,
+            }
+        return {
+            "available": True,
+            "status": "clean",
+            "infected": False,
+            "output": "OK",
+            "time_ms": elapsed,
+        }
     except subprocess.TimeoutExpired:
-        return {"available": True, "error": "Timeout YARA", "time_ms": int((time.time()-t0)*1000)}
+        return {
+            "available": True,
+            "status": "error",
+            "infected": False,
+            "reason": f"timeout (>{YARA_TIMEOUT_S // 60} min)",
+            "error": "Timeout YARA",
+            "time_ms": int((time.time() - t0) * 1000),
+        }
     except Exception as e:
-        return {"available": True, "error": str(e), "time_ms": int((time.time()-t0)*1000)}
+        return {
+            "available": True,
+            "status": "error",
+            "infected": False,
+            "reason": _short(e),
+            "error": str(e),
+            "time_ms": int((time.time() - t0) * 1000),
+        }
+
+def _engine_warning(name, result):
+    status = result.get("status")
+    if status in ("clean", "infected"):
+        return None
+    reason = result.get("reason") or result.get("error") or "falha"
+    if status == "skipped":
+        return f"{name}: ignorado ({reason})"
+    if status == "unavailable":
+        return f"{name}: indisponivel"
+    return f"{name}: erro ({reason})"
+
 
 def scan_file(file_path):
-    """Scan completo ClamAV + YARA, retorna agregado"""
+    """Roda ClamAV + YARA e retorna veredito agregado com cobertura explicita."""
     clam = scan_with_clamav(file_path)
     yara = scan_with_yara(file_path)
-    
-    # agregado
+
     infected = bool(clam.get("infected") or yara.get("infected"))
     signatures = []
     if clam.get("infected") and clam.get("signature"):
         signatures.append(f"ClamAV:{clam['signature']}")
     if yara.get("infected") and yara.get("signature"):
         signatures.append(f"YARA:{yara['signature']}")
-    
-    # se nenhum disponivel, marca erro
-    if not clam.get("available") and not yara.get("available"):
-        return {"infected": False, "error": "Nenhum engine disponivel", "clamav": clam, "yara": yara}
-    
-    return {
+
+    warnings = [
+        warning
+        for warning in (
+            _engine_warning("ClamAV", clam),
+            _engine_warning("YARA", yara),
+        )
+        if warning
+    ]
+    ran = [
+        result
+        for result in (clam, yara)
+        if result.get("status") in ("clean", "infected")
+    ]
+    complete = (
+        clam.get("status") in ("clean", "infected")
+        and yara.get("status") in ("clean", "infected")
+    )
+
+    if infected:
+        summary = "; ".join(signatures) or "Detectado"
+        if not complete:
+            summary += " (parcial)"
+    elif complete:
+        summary = "Limpo"
+    else:
+        summary = "Parcial" + (": " + "; ".join(warnings) if warnings else "")
+
+    result = {
         "infected": infected,
         "signatures": signatures,
         "clamav": clam,
         "yara": yara,
-        "summary": "; ".join(signatures) if signatures else ("Limpo" if not infected else "Detectado")
+        "complete": complete,
+        "warnings": warnings,
+        "summary": summary,
     }
+    if not ran:
+        result["error"] = "Nenhum engine concluiu o scan"
+    return result
+
 
 if __name__ == "__main__":
     import sys

@@ -4,7 +4,7 @@
 ; build via: pyinstaller horash.spec -> dist/horash.exe, depois iscc
 
 #define MyAppName "horash"
-#define MyAppVersion "0.2.3"
+#define MyAppVersion "0.4.0"
 #define MyAppPublisher "horash"
 #define MyAppURL "https://github.com/seiti-kg/horash"
 

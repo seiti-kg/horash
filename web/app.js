@@ -85,7 +85,7 @@ function vtLogsHtml(stats, results){
   const timeout = stats.timeout||0, fail = stats['failure']||0, conf = stats['confirmed-timeout']||0, unsup = stats['type-unsupported']||0;
   const total = mal+susp+und+harm+timeout+fail+conf+unsup;
   const clean = und+harm;
-  let html = `<div style="margin-top:8px;padding:8px 10px;background:var(--bg);border:1px solid var(--border);border-radius:8px;font-family:Geist Mono,monospace;font-size:10px;line-height:1.6">`;
+  let html = `<div style="margin-top:8px;padding:8px 10px;background:var(--bg);border:1px solid var(--border);border-radius:8px;font-family:ui-monospace,Consolas,monospace;font-size:10px;line-height:1.6">`;
   html += `<div style="color:var(--text-2);margin-bottom:6px">Logs VT: <b style="color:var(--text)">${clean}/${total} passaram</b> • ${mal} maliciosos • ${susp} suspeitos • ${timeout+fail+conf} timeout • ${unsup} não suportado</div>`;
   if(results && typeof results==='object'){
     const entries = Object.entries(results);
@@ -129,7 +129,7 @@ function vtLogsHtml(stats, results){
 
 function showToast(msg){
   let t=document.getElementById('toast');
-  if(!t){ t=document.createElement('div'); t.id='toast'; t.style.cssText='position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--surface);color:var(--text);border:1px solid var(--border);padding:12px 16px;border-radius:999px;font-family:Geist Mono,monospace;font-size:12px;max-width:520px;text-align:center;z-index:9999;box-shadow:0 16px 32px rgba(0,0,0,0.4)'; document.body.appendChild(t); }
+  if(!t){ t=document.createElement('div'); t.id='toast'; t.style.cssText='position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--surface);color:var(--text);border:1px solid var(--border);padding:12px 16px;border-radius:999px;font-family:ui-monospace,Consolas,monospace;font-size:12px;max-width:520px;text-align:center;z-index:9999;box-shadow:0 16px 32px rgba(0,0,0,0.4)'; document.body.appendChild(t); }
   t.innerHTML=msg; t.style.display='block';
   clearTimeout(t._timer); t._timer=setTimeout(()=>t.style.display='none', 4000);
 }
@@ -150,11 +150,14 @@ function localBadge(local){
     return `<span class="status hashing local-status">⏳ ${phase} ${elapsed}s</span><div class="progress-bar"><div class="progress-fill local-progress" style="width:${pct}%"></div></div>`;
   }
   if(local.error) return `<span class="status">⚠️ ${escapeHtml(local.error)}</span><div class="vt-detail"><a href="#" onclick="scanLocal('${local.id||''}'); return false;" style="color:var(--accent);text-decoration:underline">tentar novamente</a></div>`;
+  const warn = (local.warnings||[]).map(escapeHtml).join(' • ');
   if(local.infected) {
     const t = local.total_time_ms ? ` • ${formatMs(local.total_time_ms)}` : (local.scan_time_ms?` • ${formatMs(local.scan_time_ms)}`:'');
-    return `<span class="vt-badge vt-malicious">⛔ Infectado${t}</span><div class="vt-detail" style="color:var(--red)">${escapeHtml(local.summary||local.signatures||'Detectado')}</div><div class="vt-detail">${local.clamav?.time_ms?'ClamAV '+formatMs(local.clamav.time_ms):''} ${local.yara?.time_ms?' + YARA '+formatMs(local.yara.time_ms):''}</div>`;
+    return `<span class="vt-badge vt-malicious">⛔ Infectado${t}</span><div class="vt-detail" style="color:var(--red)">${escapeHtml(local.summary||local.signatures||'Detectado')}</div>${warn?`<div class="vt-detail">⚠️ ${warn}</div>`:''}<div class="vt-detail">${local.clamav?.time_ms?'ClamAV '+formatMs(local.clamav.time_ms):''} ${local.yara?.time_ms?' + YARA '+formatMs(local.yara.time_ms):''}</div>`;
   }
-  if(local.available === false) return `<span class="vt-badge vt-unknown">⚠️ Engine OFF</span><div class="vt-detail">${escapeHtml(local.error||'ClamAV/YARA não instalado')}</div>`;
+  if(local.complete === false) {
+    return `<span class="vt-badge vt-suspicious">⚠️ Parcial</span><div class="vt-detail">${warn||'cobertura incompleta'}</div><div class="vt-detail">ClamAV ${local.clamav?.status||'?'} • YARA ${local.yara?.status||'?'}</div>`;
+  }
   const t = local.total_time_ms ? ` • ${formatMs(local.total_time_ms)}` : (local.scan_time_ms?` • ${formatMs(local.scan_time_ms)}`:'');
   return `<span class="vt-badge vt-clean">✓ Limpo${t}</span><div class="vt-detail">ClamAV ${local.clamav?.time_ms?formatMs(local.clamav.time_ms):''} + YARA ${local.yara?.time_ms?formatMs(local.yara.time_ms):''}`.trim()+'</div>';
 }
@@ -162,14 +165,14 @@ function localBadge(local){
 function render(){
   if(isSelecting){ pendingRender=true; updateToolbar(); return; }
   if(files.length===0){
-    tbody.innerHTML='<tr><td colspan="5"><div class="empty-state"><span>⬢</span><b>Bandeja vazia</b>Solte arquivos acima. Hash local + VT + ClamAV/YARA. Fechar limpa tudo.<br><span style="font-family:Geist Mono,monospace;font-size:11px;color:var(--muted);margin-top:8px;display:inline-block;border:1px dashed var(--border);padding:4px 8px;border-radius:999px">01 Hash → 02 Verify → 03 Scan</span></div></td></tr>';
+    tbody.innerHTML='<tr><td colspan="5"><div class="empty-state"><span>⬢</span><b>Bandeja vazia</b>Solte arquivos acima. Hash local + VT + ClamAV/YARA. Fechar limpa tudo.<br><span style="font-family:ui-monospace,Consolas,monospace;font-size:11px;color:var(--muted);margin-top:8px;display:inline-block;border:1px dashed var(--border);padding:4px 8px;border-radius:999px">01 Hash → 02 Verify → 03 Scan</span></div></td></tr>';
     updateToolbar(); return;
   }
   tbody.innerHTML = files.map(f=>`
     <tr data-fid="${f.id}">
       <td>
         <span class="file-name" title="${escapeHtml(f.name)}">${escapeHtml(f.name)}</span>
-        <div class="file-size">${formatBytes(f.size)}${f.size>650*1024*1024 ? '<br><span style="color:var(--red);font-size:10px;font-family:Geist Mono,monospace">›650MB — VT N/A</span>' : ''}</div>
+        <div class="file-size">${formatBytes(f.size)}${f.size>650*1024*1024 ? '<br><span style="color:var(--red);font-size:10px;font-family:ui-monospace,Consolas,monospace">›650MB — VT N/A</span>' : ''}</div>
       </td>
       <td>
         ${f.status==='hashing' ? `<div class="status hashing hashing-status">⏳ ${f.progress ? Math.round(f.progress*100)+'%' : 'iniciando…'} ${f.size>50*1024*1024 ? '('+formatBytes(f.hashed||0)+' / '+formatBytes(f.size)+')' : ''}</div><div class="progress-bar"><div class="progress-fill" style="width:${Math.round((f.progress||0)*100)}%"></div></div>` : ''}
@@ -310,7 +313,7 @@ async function scanLocal(id){
           try{ resolve(JSON.parse(xhr.responseText)); } catch(e){ reject(e); }
         } else { reject(new Error(xhr.responseText || `HTTP ${xhr.status}`)); }
       };
-      xhr.onerror = ()=> reject(new Error('Falha conexao com server local (rode FileHasher.bat)'));
+      xhr.onerror = ()=> reject(new Error('Falha conexao com server local (rode horash.bat)'));
       xhr.upload.onprogress = (e)=>{
         if(e.lengthComputable){
           entry.local.uploadProgress = e.loaded / e.total * 0.7;
@@ -327,14 +330,15 @@ async function scanLocal(id){
     clearInterval(timer);
     entry.local = {
       loading: false, infected: result.infected, signatures: result.signatures?.join(', '),
-      summary: result.summary, clamav: result.clamav, yara: result.yara, available: true, id: id,
+      summary: result.summary, clamav: result.clamav, yara: result.yara,
+      complete: result.complete, warnings: result.warnings, id: id,
       total_time_ms: result.total_time_ms, scan_time_ms: result.scan_time_ms, upload_time_ms: result.upload_time_ms
     };
     if(result.error) entry.local.error = result.error;
   }catch(err){
     clearInterval(timer); console.error("scanLocal erro", err);
     let msg = err.message || 'erro';
-    if(msg.includes('Failed to fetch') || msg.includes('conexao')){ msg = 'Server OFF — rode FileHasher.bat'; }
+    if(msg.includes('Failed to fetch') || msg.includes('conexao')){ msg = 'Server OFF — rode horash.bat'; }
     entry.local = { loading: false, error: msg, id: id };
   }
   if(isSelecting) pendingRender=true; else render();
@@ -346,17 +350,6 @@ async function scanAllLocal(){
   }
 }
 
-function openVT(hash){ window.open(`https://www.virustotal.com/gui/file/${hash}`, '_blank', 'noopener,noreferrer'); }
-async function tryOpenIncognitoViaServer(hash){
-  try{
-    const controller = new AbortController();
-    const t = setTimeout(()=>controller.abort(), 1500);
-    const res = await fetch(`http://localhost:8765/open?hash=${hash}`, { method: 'GET', signal: controller.signal });
-    clearTimeout(t);
-    if(res.ok){ const j = await res.json(); showToast(`✅ Anônimo!<br><span style="opacity:0.7">${j.status}</span>`); return true; }
-  }catch(e){}
-  return false;
-}
 function openVTIncognito(hash){
   const url = `https://www.virustotal.com/gui/file/${hash}`;
   // Abre fallbackWin SINCRONAMENTE para preservar gesto (popup blocker)
@@ -442,7 +435,7 @@ async function scrapeVTOne(id){
     const data = await res.json();
     if(!res.ok || data.error && !data.stats) throw new Error(data.error || `HTTP ${res.status}`);
     if(data.stats){
-      f.vt = { loading:false, stats: data.stats, results: data.results, date: Date.now()/1000, via:'playwright', time_ms: data.time_ms };
+      f.vt = { loading:false, stats: data.stats, results: data.results, date: null, via:'playwright', time_ms: data.time_ms };
     } else {
       throw new Error(data.error||'Sem stats');
     }
@@ -516,7 +509,6 @@ window.copyHash = async (hash, btn)=>{
   btn.textContent='✓ Copiado'; btn.classList.add('copied');
   setTimeout(()=>{ btn.textContent='📋 Copiar'; btn.classList.remove('copied'); },1500);
 };
-window.openVT = openVT;
 window.openVTIncognito = openVTIncognito;
 window.checkOne = checkOne;
 async function checkServerStatus(){
@@ -530,7 +522,7 @@ async function checkServerStatus(){
       dot.classList.add('on'); dot.classList.remove('off');
     } else { throw new Error(); }
   }catch(e){
-    txt.textContent = 'Servidor OFF — rode FileHasher.bat';
+    txt.textContent = 'Servidor OFF — rode horash.bat';
     dot.classList.add('off'); dot.classList.remove('on');
   }
 }
@@ -551,7 +543,7 @@ async function checkLocalHealth(){
       localDot.className = 'status-dot ' + ((j.clamav_available||j.yara_available)?'on':'off');
     }
   }catch(e){
-    localHealthEl.textContent = '⚠️ Scan Local OFF — rode FileHasher.bat';
+    localHealthEl.textContent = '⚠️ Scan Local OFF — rode horash.bat';
     localHealthEl.style.color = 'var(--red)';
     if(localHealthText){ localHealthText.textContent='Servidor OFF'; localDot.className='status-dot off'; }
   }

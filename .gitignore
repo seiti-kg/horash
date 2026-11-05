@@ -40,3 +40,6 @@ skills-lock.json
 
 # Logs
 *.log
+
+# Regras YARA instaladas (geradas por install_yara.ps1)
+yara/rules/*.yarc
