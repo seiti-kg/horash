@@ -27,7 +27,7 @@
 - PowerShell 5.1+.
 - Internet na primeira execução (dependências, ClamAV, YARA e regras).
 - Python 3.11+ — o instalador baixa automaticamente se não encontrar um Python real.
-- ~400 MB ou mais de disco depois do bootstrap (ClamAV + YARA full + regras compiladas).
+- ~400 MB ou mais de disco depois do bootstrap (ClamAV, YARA full e regras compiladas).
 
 ## INSTALAR
 
@@ -38,7 +38,7 @@ irm https://raw.githubusercontent.com/seiti-kg/horash/main/tools/install.ps1 | i
 ```
 
 O QUE FAZ:
-- instala em `%localappdata%\horash` (o app é código; ClamAV ~300 MB + YARA full ~20 MB de regras + ~45 MB compilado vêm na primeira vez, 2–5 min)
+- instala em `%localappdata%\horash` (o app é código; ClamAV ~225 MB de download (~240 MB em disco) + YARA full ~20 MB de regras + ~45 MB compilado vêm na primeira vez; 10+ min dependendo da rede)
 - instala dependências Python no Python do usuário (`pywebview`, `playwright`); não cria venv
 - baixa ClamAV e YARA via `tools/bootstrap.ps1`
 - baixa o Chromium do Playwright (usado pelo scrape do VT quando não há API key)
@@ -161,7 +161,7 @@ git clone https://github.com/seiti-kg/horash.git
 cd horash
 python -m pip install -r requirements.txt
 
-# baixa ClamAV + YARA full (~2-5 min). Sem isso, o YARA usa só o fallback
+# baixa ClamAV + YARA full (primeira vez: ~10+ min). Sem isso, o YARA usa só o fallback
 # de 11 regras e o ClamAV pode aparecer como indisponível.
 powershell -ExecutionPolicy Bypass -File tools/bootstrap.ps1
 

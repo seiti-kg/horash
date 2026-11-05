@@ -136,7 +136,7 @@ $hasYaraRules = (Test-Path (Join-Path $installDir "yara\rules\full.yar")) -or
 if (-not $hasYaraRules) { $needBootstrap = $true }
 if (-not (Test-Path (Join-Path $installDir "clamav\clamscan.exe"))) { $needBootstrap = $true }
 if ($needBootstrap) {
-    Write-Host "[*] baixando protecoes (clamav ~300mb + yara full ~20mb, 2-5 min)..." -ForegroundColor Yellow
+    Write-Host "[*] baixando protecoes (clamav ~225mb download + yara full ~20mb, 5-10 min)..." -ForegroundColor Yellow
     try {
         $bootstrap = Join-Path $installDir "tools\bootstrap.ps1"
         if (Test-Path $bootstrap) {
