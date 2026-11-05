@@ -46,7 +46,8 @@ O QUE FAZ:
 
 DEPOIS:
 ```ps1
-horash        # terminal, atalho ou duplo clique
+horash        # em um terminal NOVO (o PATH da sessão atual não é recarregado)
+# ou use o atalho da área de trabalho
 ```
 
 Se o Python não existir, o instalador tenta `winget` e depois o instalador oficial do python.org.
@@ -160,8 +161,12 @@ git clone https://github.com/seiti-kg/horash.git
 cd horash
 python -m pip install -r requirements.txt
 
-# baixa ClamAV + YARA full (~2-5 min). Sem isso, o scan local fica parcial.
+# baixa ClamAV + YARA full (~2-5 min). Sem isso, o YARA usa só o fallback
+# de 11 regras e o ClamAV pode aparecer como indisponível.
 powershell -ExecutionPolicy Bypass -File tools/bootstrap.ps1
+
+# necessário apenas para o scrape do VT sem API key:
+python -m playwright install chromium
 
 python src/main.py                 # app com janela pywebview
 # ou:
