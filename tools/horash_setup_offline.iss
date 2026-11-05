@@ -4,7 +4,7 @@
 ; build via: set HORASH_OFFLINE=1 & pyinstaller horash.spec -> dist/horash.exe (com bundle), depois iscc
 
 #define MyAppName "horash"
-#define MyAppVersion "0.4.0"
+#define MyAppVersion "0.4.0-beta"
 #define MyAppPublisher "horash"
 #define MyAppURL "https://github.com/seiti-kg/horash"
 
@@ -50,6 +50,7 @@ Source: "..\yara\*"; DestDir: "{app}\yara"; Flags: ignoreversion recursesubdirs 
 Source: "bootstrap.ps1"; DestDir: "{app}\tools"; Flags: ignoreversion; Components: core
 Source: "..\web\favicon.ico"; DestDir: "{app}\web"; Flags: ignoreversion; Components: core
 Source: "..\README.md"; DestDir: "{app}"; Flags: ignoreversion; Components: core
+Source: "..\docs\*"; DestDir: "{app}\docs"; Flags: ignoreversion recursesubdirs createallsubdirs; Components: core
 Source: "..\LICENSE"; DestDir: "{app}"; Flags: ignoreversion; Components: core
 
 [Icons]
