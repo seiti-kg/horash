@@ -6,8 +6,6 @@
   <em>Triagem local de arquivos em lote: SHA-256, consulta ao VirusTotal por hash e scan ClamAV + YARA no Windows.</em>
 </p>
 
----
-
 ## Quick start
 
 Windows 10/11 x64 · Python 3.11+ (o instalador baixa se faltar) · internet na primeira execução.
